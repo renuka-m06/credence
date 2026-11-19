@@ -34,13 +34,22 @@ router = APIRouter(tags=["review"])
 class ReviewRequest(BaseModel):
     action: str = Field(..., description="Action: 'accept', 'override', or 'comment'")
     override_verdict: Optional[str] = Field(None, description="Target verdict if action is 'override'")
-    comment: Optional[str] = Field(None, description="Reviewer commentary or rationale")
+    explanation: Optional[str] = Field(None, description="Mandatory explanation if action is 'override'")
+    comment: Optional[str] = Field(None, description="Reviewer commentary or rationale alias")
+    original_verdict: Optional[str] = Field(None, description="Original automated verdict before override")
     reviewer_id: Optional[str] = Field("reviewer-1", description="Identifier of the human reviewer")
 
 
 @router.post("/claims/{claim_id}/review")
 def review_claim_endpoint(claim_id: str, payload: ReviewRequest) -> dict[str, Any]:
     """Append a human review action (accept, override, comment) to the immutable SQLite ledger."""
+    clean_id = str(claim_id or "").strip()
+    if not clean_id or clean_id.lower() in ("undefined", "null", "none"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid claim ID provided.",
+        )
+
     action = payload.action.strip().lower()
     if action not in ("accept", "override", "comment"):
         raise HTTPException(
@@ -48,26 +57,62 @@ def review_claim_endpoint(claim_id: str, payload: ReviewRequest) -> dict[str, An
             detail=f"Invalid action '{payload.action}'. Expected 'accept', 'override', or 'comment'.",
         )
 
-    if action == "override" and not payload.override_verdict:
-        raise HTTPException(
-            status_code=400,
-            detail="Action 'override' requires 'override_verdict' to be provided.",
-        )
+    explanation = (payload.explanation if payload.explanation is not None else payload.comment or "").strip()
+
+    if action == "override":
+        if not payload.override_verdict:
+            raise HTTPException(
+                status_code=400,
+                detail="Action 'override' requires 'override_verdict' to be provided.",
+            )
+        norm_verdict = payload.override_verdict.strip().lower()
+        from credence.report.ledger import VALID_VERDICTS
+        if norm_verdict not in VALID_VERDICTS:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Invalid override verdict '{payload.override_verdict}'. Must be one of: "
+                    f"{', '.join(sorted(VALID_VERDICTS))}."
+                ),
+            )
+        if not explanation:
+            raise HTTPException(
+                status_code=400,
+                detail="Action 'override' requires a mandatory explanation.",
+            )
+
+    # Resolve original automated verdict from memory store if not provided
+    orig_v = payload.original_verdict
+    import credence.server as srv
+    if not orig_v:
+        for rep in srv.REPORTS_STORE.values():
+            for c in rep.get("claims", []):
+                if c.get("id") == clean_id:
+                    orig_v = c.get("verdict", {}).get("original_verdict") or c.get("verdict", {}).get("verdict")
+                    break
+            if orig_v:
+                break
 
     try:
         entry = record_review(
-            claim_id=claim_id,
+            claim_id=clean_id,
             action=action,
             override_verdict=payload.override_verdict,
-            comment=payload.comment,
+            explanation=explanation,
+            comment=explanation,
+            original_verdict=orig_v,
             reviewer_id=payload.reviewer_id or "reviewer-1",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    # Synchronize in-memory active reports with the latest ledger override
+    for rep_key, rep in list(srv.REPORTS_STORE.items()):
+        srv.REPORTS_STORE[rep_key] = apply_ledger_to_report(dict(rep))
+
     return {
         "status": "ok",
-        "claim_id": claim_id,
+        "claim_id": clean_id,
         "review": entry,
     }
 

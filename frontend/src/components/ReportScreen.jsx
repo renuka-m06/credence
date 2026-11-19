@@ -9,6 +9,8 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [overrideChoice, setOverrideChoice] = useState('supported');
   const [overrideComment, setOverrideComment] = useState('');
+  const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
+  const [overrideError, setOverrideError] = useState(null);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [reviewNote, setReviewNote] = useState('');
@@ -154,40 +156,68 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
       });
   };
 
-  const handleAction = (actionType, explicitComment = '') => {
+  const handleAction = async (actionType, explicitComment = '') => {
     if (actionType === 'accept') {
       const comment = explicitComment || 'Reviewer accepted verdict based on verified proof.';
-      onReviewClaim?.(report.id, selectedClaim.id, {
-        action: 'accept',
-        comment,
-        reviewer_id: 'reviewer-1'
-      });
-      setReviewNote('Action logged: Accepted verdict.');
-      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      try {
+        await onReviewClaim?.(report.id, selectedClaim.id, {
+          action: 'accept',
+          comment,
+          explanation: comment,
+          original_verdict: selectedClaim.verdict?.original_verdict || selectedClaim.verdict?.verdict,
+          reviewer_id: 'reviewer-1'
+        });
+        setReviewNote('Action logged: Accepted verdict.');
+        if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      } catch (err) {
+        setReviewNote(`Failed to log accept: ${err.message}`);
+      }
     } else if (actionType === 'comment') {
       const comment = explicitComment || commentText;
       if (!comment.trim()) return;
-      onReviewClaim?.(report.id, selectedClaim.id, {
-        action: 'comment',
-        comment: comment.trim(),
-        reviewer_id: 'reviewer-1'
-      });
-      setReviewNote(`Comment added: "${comment.trim()}"`);
-      setCommentText('');
-      setShowCommentModal(false);
-      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      try {
+        await onReviewClaim?.(report.id, selectedClaim.id, {
+          action: 'comment',
+          comment: comment.trim(),
+          explanation: comment.trim(),
+          original_verdict: selectedClaim.verdict?.original_verdict || selectedClaim.verdict?.verdict,
+          reviewer_id: 'reviewer-1'
+        });
+        setReviewNote(`Comment added: "${comment.trim()}"`);
+        setCommentText('');
+        setShowCommentModal(false);
+        if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      } catch (err) {
+        setReviewNote(`Failed to add comment: ${err.message}`);
+      }
     } else if (actionType === 'override') {
-      const comment = explicitComment || overrideComment.trim() || `Overridden to ${overrideChoice}`;
-      onReviewClaim?.(report.id, selectedClaim.id, {
-        action: 'override',
-        override_verdict: overrideChoice,
-        comment,
-        reviewer_id: 'reviewer-1'
-      });
-      setReviewNote(`Action logged: Overridden to ${overrideChoice}.`);
-      setShowOverrideModal(false);
-      setOverrideComment('');
-      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      const comment = explicitComment || overrideComment.trim();
+      if (!comment) {
+        setOverrideError('An explanation is mandatory to override a verdict.');
+        return;
+      }
+
+      setIsSubmittingOverride(true);
+      setOverrideError(null);
+
+      try {
+        await onReviewClaim?.(report.id, selectedClaim.id, {
+          action: 'override',
+          override_verdict: overrideChoice,
+          explanation: comment,
+          comment: comment,
+          original_verdict: selectedClaim.verdict?.original_verdict || selectedClaim.verdict?.verdict,
+          reviewer_id: 'reviewer-1'
+        });
+        setReviewNote(`Verdict successfully overridden to ${overrideChoice}.`);
+        setShowOverrideModal(false);
+        setOverrideComment('');
+        setIsSubmittingOverride(false);
+        if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
+      } catch (err) {
+        setIsSubmittingOverride(false);
+        setOverrideError(err.message || 'Failed to submit override.');
+      }
     }
   };
 
@@ -615,6 +645,34 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 </div>
               )}
 
+              {/* Human Review Override Active Banner */}
+              {selectedClaim.verdict?.override_info && (
+                <div style={{
+                  background: 'rgba(240, 106, 44, 0.08)',
+                  border: '1px solid rgba(240, 106, 44, 0.3)',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--orange2)' }}>
+                      ✎ Human Review Override Active
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      by {selectedClaim.verdict.override_info.reviewer_id || 'reviewer-1'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--ink)' }}>
+                    Original Automated Verdict: <strong style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{selectedClaim.verdict.original_verdict || 'N/A'}</strong>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', fontStyle: 'italic' }}>
+                    Rationale: "{selectedClaim.verdict.override_info.explanation || selectedClaim.verdict.override_info.comment}"
+                  </div>
+                </div>
+              )}
+
               {/* Verdict + Confidence Strip */}
               <div style={{
                 background: 'var(--panel2)',
@@ -896,43 +954,78 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     Override Claim Verdict ({selectedClaim.id})
                   </span>
                   <button
-                    onClick={() => setShowOverrideModal(false)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--faint)', cursor: 'pointer', fontSize: '14px' }}
+                    onClick={() => {
+                      if (!isSubmittingOverride) {
+                        setShowOverrideModal(false);
+                        setOverrideError(null);
+                      }
+                    }}
+                    disabled={isSubmittingOverride}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--faint)', cursor: isSubmittingOverride ? 'not-allowed' : 'pointer', fontSize: '14px' }}
                   >
                     ✕
                   </button>
                 </div>
+
+                {overrideError && (
+                  <div style={{
+                    background: 'rgba(239, 107, 107, 0.12)',
+                    border: '1px solid rgba(239, 107, 107, 0.4)',
+                    color: '#ef6b6b',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}>
+                    <span>⚠️</span>
+                    <span>{overrideError}</span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>New Verdict:</span>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '600' }}>New Verdict:</span>
                   <select
                     value={overrideChoice}
                     onChange={(e) => setOverrideChoice(e.target.value)}
+                    disabled={isSubmittingOverride}
                     style={{
                       background: 'var(--bg)',
                       color: '#fff',
                       border: '1px solid var(--line)',
                       borderRadius: '6px',
                       padding: '6px 10px',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      cursor: isSubmittingOverride ? 'not-allowed' : 'pointer',
                     }}
                   >
                     <option value="supported">Supported</option>
                     <option value="partially supported">Partially Supported</option>
-                    <option value="contradictory">Contradictory</option>
                     <option value="unsupported">Unsupported</option>
+                    <option value="contradictory">Contradictory</option>
                     <option value="needs review">Needs Review</option>
+                    <option value="potentially outdated">Potentially Outdated</option>
                   </select>
                 </div>
-                <div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: '600' }}>
+                    Explanation <span style={{ color: 'var(--orange2)' }}>* (Mandatory)</span>:
+                  </label>
                   <input
                     type="text"
-                    placeholder="Reviewer rationale / evidence justification (optional)..."
+                    placeholder="Mandatory reviewer rationale / evidence justification..."
                     value={overrideComment}
-                    onChange={(e) => setOverrideComment(e.target.value)}
+                    onChange={(e) => {
+                      setOverrideComment(e.target.value);
+                      if (overrideError) setOverrideError(null);
+                    }}
+                    disabled={isSubmittingOverride}
                     style={{
                       width: '100%',
                       background: 'var(--bg)',
-                      border: '1px solid var(--line)',
+                      border: overrideError ? '1px solid rgba(239, 107, 107, 0.6)' : '1px solid var(--line)',
                       borderRadius: '6px',
                       padding: '8px 12px',
                       fontSize: '12px',
@@ -940,12 +1033,26 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={() => setShowOverrideModal(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowOverrideModal(false);
+                      setOverrideError(null);
+                    }}
+                    disabled={isSubmittingOverride}
+                    style={{ padding: '6px 12px', fontSize: '12px', cursor: isSubmittingOverride ? 'not-allowed' : 'pointer' }}
+                  >
                     Cancel
                   </button>
-                  <button className="btn btn-primary" onClick={() => handleAction('override')} style={{ padding: '6px 14px', fontSize: '12px' }}>
-                    Confirm Override
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleAction('override')}
+                    disabled={isSubmittingOverride}
+                    style={{ padding: '6px 14px', fontSize: '12px', cursor: isSubmittingOverride ? 'not-allowed' : 'pointer', opacity: isSubmittingOverride ? 0.7 : 1 }}
+                  >
+                    {isSubmittingOverride ? 'Submitting Override...' : 'Confirm Override'}
                   </button>
                 </div>
               </div>

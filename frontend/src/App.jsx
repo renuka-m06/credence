@@ -151,12 +151,22 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Fetch live demo report from backend if available
-    fetch('/demo/report')
-      .then(res => res.json())
+    // Check if there is an active report ID stored in session
+    const savedRepId = typeof window !== 'undefined' ? sessionStorage.getItem('credence_active_report_id') : null;
+    const reportUrl = savedRepId && savedRepId !== 'demo-report-1' ? `/report/${savedRepId}` : '/demo/report';
+    fetch(reportUrl)
+      .then(res => {
+        if (!res.ok && savedRepId) {
+          return fetch('/demo/report').then(r => r.json());
+        }
+        return res.json();
+      })
       .then(data => {
         if (data && data.claims) {
           setReport(data);
+          if (data.id && typeof window !== 'undefined') {
+            sessionStorage.setItem('credence_active_report_id', data.id);
+          }
         }
       })
       .catch(() => {
@@ -282,29 +292,93 @@ export default function App() {
     setErrorMessage(null);
   };
 
-  const handleReviewClaim = (reportId, claimId, actionData) => {
-    return fetch(`/claims/${claimId}/review`, {
+  const handleReviewClaim = async (reportId, claimId, actionData) => {
+    const res = await fetch(`/claims/${claimId}/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(actionData),
-    })
-      .then(res => res.json())
-      .then(data => {
-        // Re-fetch report from backend with SQLite review ledger applied
-        const reportUrl = reportId && reportId !== 'demo-report-1' ? `/report/${reportId}` : '/demo/report';
-        fetch(reportUrl)
-          .then(r => r.json())
-          .then(updated => {
-            if (updated && updated.claims) {
-              setReport(updated);
-            }
-          })
-          .catch(() => {});
-        return data;
-      })
-      .catch(err => {
-        console.error('Failed to submit review to ledger:', err);
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const errMsg = data.detail || data.message || `Review submission failed (${res.status})`;
+      throw new Error(errMsg);
+    }
+
+    // Immediately update React report state optimistically
+    setReport(prev => {
+      if (!prev || !prev.claims) return prev;
+      const updatedClaims = prev.claims.map(c => {
+        if (c.id !== claimId) return c;
+
+        const updatedVerdict = { ...c.verdict };
+        if (actionData.action === 'override' && actionData.override_verdict) {
+          if (!updatedVerdict.original_verdict) {
+            updatedVerdict.original_verdict = updatedVerdict.verdict;
+          }
+          updatedVerdict.verdict = actionData.override_verdict;
+          const capWord = actionData.override_verdict.charAt(0).toUpperCase() + actionData.override_verdict.slice(1);
+          updatedVerdict.display_verdict = `${capWord} (Overridden)`;
+          updatedVerdict.needs_review = actionData.override_verdict === 'needs review';
+          updatedVerdict.override_info = data.review;
+        }
+
+        const currentReviews = Array.isArray(c.reviews) ? [...c.reviews] : [];
+        if (data.review) {
+          currentReviews.push(data.review);
+        }
+
+        return {
+          ...c,
+          verdict: updatedVerdict,
+          reviews: currentReviews,
+        };
       });
+
+      // Recalculate summary tallies
+      let supp = 0, part = 0, contra = 0, unsupp = 0, rev = 0, ovCount = 0;
+      updatedClaims.forEach(cl => {
+        const v = (cl.verdict?.verdict || '').toLowerCase();
+        if (cl.verdict?.override_info) ovCount++;
+        if (v.includes('partially') || v.includes('partial')) part++;
+        else if (v.includes('contradict')) contra++;
+        else if (v.includes('unsupport')) unsupp++;
+        else if (v.includes('support')) supp++;
+        else rev++;
+      });
+
+      return {
+        ...prev,
+        claims: updatedClaims,
+        summary: {
+          ...prev.summary,
+          supported: supp,
+          partially_supported: part,
+          contradictory: contra,
+          unsupported: unsupp,
+          needs_review: rev,
+          human_overrides: ovCount,
+          human_review_required: rev > 0 || part > 0 || contra > 0,
+        },
+      };
+    });
+
+    // Re-fetch report from backend with SQLite review ledger applied
+    const reportUrl = reportId && reportId !== 'demo-report-1' ? `/report/${reportId}` : '/demo/report';
+    fetch(reportUrl)
+      .then(r => r.json())
+      .then(updated => {
+        if (updated && updated.claims) {
+          setReport(updated);
+          if (updated.id && typeof window !== 'undefined') {
+            sessionStorage.setItem('credence_active_report_id', updated.id);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return data;
   };
 
   return (

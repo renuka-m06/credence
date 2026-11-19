@@ -58,8 +58,17 @@ def generate_markdown_export(report: dict[str, Any]) -> str:
             f"### {cid.upper()}: {text}",
             f"- **Location:** {loc}",
             f"- **Citation Keys:** [{citations}]",
-            f"- **Computed Verdict:** **{display_v}** ({conf:.0f}% confidence)",
         ])
+
+        if verdict.get("override_info"):
+            lines.extend([
+                f"- **Effective Verdict (Overridden):** **{display_v}**",
+                f"- **Original Automated Verdict:** `{verdict.get('original_verdict', 'N/A')}`",
+                f"- **Override Rationale:** *{verdict['override_info'].get('explanation') or verdict['override_info'].get('comment') or 'N/A'}*",
+                f"- **Computed Confidence:** {conf:.0f}%",
+            ])
+        else:
+            lines.append(f"- **Computed Verdict:** **{display_v}** ({conf:.0f}% confidence)")
 
         if explanation:
             lines.append(f"- **Triage Analysis:** {explanation}")
@@ -192,12 +201,22 @@ def generate_html_export(report: dict[str, Any]) -> str:
         if review_items:
             review_html = f"<div class='reviews-box'><div class='section-title'>Human Review Ledger</div>{''.join(review_items)}</div>"
 
+        override_badge_html = ""
+        if verdict.get("override_info"):
+            orig_v_str = html.escape(str(verdict.get("original_verdict", "N/A")))
+            override_badge_html = f"""
+            <div style="font-size: 11px; color: #f06a2c; margin-top: 4px; font-weight: 600;">
+              ✎ Overridden by human reviewer (Original Automated Verdict: <em>{orig_v_str}</em>)
+            </div>
+            """
+
         claims_html_parts.append(f"""
         <div class="claim-card">
           <div class="claim-header">
             <span class="claim-id">{cid} · {loc}</span>
             <span class="badge verdict-badge">{display_v}</span>
           </div>
+          {override_badge_html}
           <div class="claim-text">"{text}"</div>
           <div class="claim-meta">
             <span>Citation: [{citations}]</span>

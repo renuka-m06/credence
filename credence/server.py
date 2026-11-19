@@ -54,7 +54,9 @@ REPORTS_STORE: dict[str, dict[str, Any]] = {}
 class ReviewAction(BaseModel):
     action: str  # 'accept', 'override', 'comment'
     override_verdict: Optional[str] = None
+    explanation: Optional[str] = None
     comment: Optional[str] = None
+    original_verdict: Optional[str] = None
     reviewer_id: Optional[str] = "reviewer-1"
 
 
@@ -269,33 +271,44 @@ def get_report(report_id: str):
 @app.post("/report/{report_id}/review")
 def review_claim(report_id: str, claim_id: str, action: ReviewAction):
     """Record human review action (Accept / Override / Comment) for academic triage."""
-    report = REPORTS_STORE.get(report_id)
+    clean_cid = str(claim_id or "").strip()
+    if not clean_cid or clean_cid.lower() in ("undefined", "null", "none"):
+        raise HTTPException(status_code=400, detail="Invalid claim ID provided.")
+
+    report = None
+    if report_id in ("demo-report-1", "demo", "sample", "default"):
+        report = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+    else:
+        report = REPORTS_STORE.get(report_id)
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    claim = next((c for c in report.get("claims", []) if c.get("id") == claim_id), None)
+    claim = next((c for c in report.get("claims", []) if c.get("id") == clean_cid), None)
     if not claim:
-        raise HTTPException(status_code=404, detail="Claim not found in report")
+        raise HTTPException(status_code=404, detail=f"Claim '{clean_cid}' not found in report")
 
-    review_entry = record_review(
-        claim_id=claim_id,
-        action=action.action,
-        override_verdict=action.override_verdict,
-        comment=action.comment,
-        reviewer_id=action.reviewer_id or "reviewer-1",
-    )
+    orig_v = action.original_verdict or claim.get("verdict", {}).get("original_verdict") or claim.get("verdict", {}).get("verdict")
+    expl = (action.explanation if action.explanation is not None else action.comment or "").strip()
 
-    if "reviews" not in claim:
-        claim["reviews"] = []
-    claim["reviews"].append(review_entry)
+    try:
+        review_entry = record_review(
+            claim_id=clean_cid,
+            action=action.action,
+            override_verdict=action.override_verdict,
+            explanation=expl,
+            comment=expl,
+            original_verdict=orig_v,
+            reviewer_id=action.reviewer_id or "reviewer-1",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    if action.action == "override" and action.override_verdict:
-        if claim.get("verdict"):
-            claim["verdict"]["verdict"] = action.override_verdict
-            claim["verdict"]["display_verdict"] = f"{action.override_verdict.capitalize()} (Overridden)"
-            claim["verdict"]["override_info"] = review_entry
+    # Apply updated ledger to the report and save
+    updated_rep = apply_ledger_to_report(dict(report))
+    REPORTS_STORE[report_id] = updated_rep
 
-    return {"status": "ok", "claim_id": claim_id, "review": review_entry}
+    return {"status": "ok", "claim_id": clean_cid, "review": review_entry}
 
 
 # Mount built React frontend if present
