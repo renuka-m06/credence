@@ -433,35 +433,9 @@ export default function RedTeamPanel({
                 Adversarial Verification Ready for Execution
               </h4>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                This assertion has not yet undergone independent adversarial auditing. Run the audit to cross-examine cited literature against retraction databases, scan for contradictory replication studies, and flag numerical discrepancies.
+                This assertion has not yet undergone independent adversarial auditing. Click <strong>Run Adversarial Audit</strong> above to cross-examine cited literature against retraction databases, scan for contradictory replication studies, and flag numerical discrepancies.
               </p>
             </div>
-
-            <button
-              onClick={handleStartChallenge}
-              className="btn btn-primary"
-              style={{
-                background: 'linear-gradient(135deg, #ef6b6b 0%, #f06a2c 100%)',
-                borderColor: 'transparent',
-                color: '#ffffff',
-                fontWeight: '700',
-                padding: '11px 22px',
-                fontSize: '13.5px',
-                boxShadow: '0 4px 14px rgba(239, 107, 107, 0.25)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '9px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              Run Adversarial Audit
-            </button>
           </div>
 
           {/* 5-Stage Scope Grid */}
