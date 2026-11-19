@@ -154,13 +154,9 @@ async def verify_document(
         rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
         cached = dict(rep)
         cached["document_name"] = file.filename
-        cached_id = f"demo-mode-{uuid.uuid4().hex[:8]}"
-        cached["id"] = cached_id
-        cached["report_id"] = cached_id
+        cached["id"] = f"demo-mode-{uuid.uuid4().hex[:8]}"
         cached["offline_demo_mode"] = True
-        cached_with_ledger = apply_ledger_to_report(cached)
-        REPORTS_STORE[cached_id] = cached_with_ledger
-        return cached_with_ledger
+        return apply_ledger_to_report(cached)
 
     suffix = Path(file.filename).suffix.lower()
     if suffix not in (".pdf", ".docx", ".doc"):
