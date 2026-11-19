@@ -195,7 +195,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
     }
     return claims.filter(c => {
       const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
-      const isReview = vStr.includes('review') || c.verdict?.needs_review;
+      const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
       const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
       if (tab === 'Needs review') return isReview || isInaccessible;
       if (tab === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
@@ -213,7 +213,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
       return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
     }
     const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
-    const isReview = vStr.includes('review') || c.verdict?.needs_review;
+    const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
     const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
     if (filter === 'Needs review') return isReview || isInaccessible;
     if (filter === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
@@ -305,6 +305,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
 
   const getVerdictClass = (vStr) => {
     const s = String(vStr || '').toLowerCase();
+    if (s.includes('outdated')) return 'verdict-needs-review';
     if (s.includes('needs') || s.includes('review')) return 'verdict-needs-review';
     if (s.includes('contradict')) return 'verdict-contradictory';
     if (s.includes('partial')) return 'verdict-partial';

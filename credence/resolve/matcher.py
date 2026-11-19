@@ -46,21 +46,26 @@ class CandidatePaper:
     publication_type: str = "journal-article"
     references: list[dict[str, Any]] = field(default_factory=list)
     raw_payload: dict[str, Any] = field(default_factory=dict)
+    access_tier: Optional[Any] = None
 
-    @property
-    def access_tier(self) -> AccessTier:
-        """Derive the access tier from available paper content."""
-        if self.open_access_pdf_url:
-            return AccessTier.FULL_TEXT
-        if self.abstract and len(self.abstract.strip()) >= 30:
-            return AccessTier.ABSTRACT_ONLY
-        if self.title:
-            return AccessTier.METADATA_ONLY
-        return AccessTier.INACCESSIBLE
+    def __post_init__(self) -> None:
+        if self.access_tier is not None:
+            if isinstance(self.access_tier, str):
+                self.access_tier = AccessTier.from_str(self.access_tier)
+        else:
+            if self.open_access_pdf_url:
+                self.access_tier = AccessTier.FULL_TEXT
+            elif self.abstract and len(self.abstract.strip()) >= 30:
+                self.access_tier = AccessTier.ABSTRACT_ONLY
+            elif self.title:
+                self.access_tier = AccessTier.METADATA_ONLY
+            else:
+                self.access_tier = AccessTier.INACCESSIBLE
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
-        data["access_tier"] = self.access_tier.value
+        if isinstance(self.access_tier, AccessTier):
+            data["access_tier"] = self.access_tier.value
         return data
 
 

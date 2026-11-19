@@ -320,7 +320,7 @@ export default function App() {
           updatedVerdict.verdict = actionData.override_verdict;
           const capWord = actionData.override_verdict.charAt(0).toUpperCase() + actionData.override_verdict.slice(1);
           updatedVerdict.display_verdict = `${capWord} (Overridden)`;
-          updatedVerdict.needs_review = actionData.override_verdict === 'needs review';
+          updatedVerdict.needs_review = actionData.override_verdict === 'needs review' || actionData.override_verdict === 'potentially outdated';
           updatedVerdict.override_info = data.review;
         }
 
