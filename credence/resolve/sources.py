@@ -15,6 +15,7 @@ Rules (AGENTS.md):
 
 from __future__ import annotations
 
+import os
 import re
 import time
 import urllib.parse
@@ -40,6 +41,7 @@ class BaseClient:
         max_retries: int = 3,
         backoff_factor: float = 0.5,
         cache: Optional[CacheStore] = None,
+        offline_mode: Optional[bool] = None,
     ):
         self.name = name
         self.base_url = base_url.rstrip("/")
@@ -47,6 +49,10 @@ class BaseClient:
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
         self.cache = cache or cache_store
+        if offline_mode is not None:
+            self.offline_mode = offline_mode
+        else:
+            self.offline_mode = os.getenv("CREDENCE_OFFLINE", "").lower() in ("1", "true", "yes")
 
     def _get(
         self,
@@ -73,7 +79,19 @@ class BaseClient:
             )
             return cached
 
-        # 2. Network request with timeout + retry/backoff
+        # 2. Check offline mode: if offline, do NOT initiate live network request
+        is_offline = self.offline_mode or (os.getenv("CREDENCE_OFFLINE", "").lower() in ("1", "true", "yes"))
+        if is_offline:
+            self.cache.log_search(
+                reference_raw=reference_raw,
+                source=self.name,
+                status="offline_miss",
+                query_string=cache_key,
+                details={"offline_mode": True}
+            )
+            return None
+
+        # 3. Live network request with timeout + retry/backoff
         last_error = None
         for attempt in range(self.max_retries):
             try:
@@ -111,7 +129,7 @@ class BaseClient:
                         time.sleep(self.backoff_factor * (2 ** attempt))
                         continue
 
-                    # Other client error
+                    # Other non-retryable client error
                     break
 
             except (httpx.TimeoutException, httpx.NetworkError, Exception) as exc:
@@ -238,11 +256,12 @@ def _parse_crossref_message(msg: dict[str, Any], default_doi: Optional[str] = No
 class CrossrefClient(BaseClient):
     """Client for Crossref metadata API."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="crossref",
             base_url="https://api.crossref.org",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def get_by_doi(self, doi: str, reference_raw: str = "") -> Optional[CandidatePaper]:
@@ -331,11 +350,12 @@ def _parse_openalex_work(data: dict[str, Any], default_doi: Optional[str] = None
 class OpenAlexClient(BaseClient):
     """Client for OpenAlex academic graph API."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="openalex",
             base_url="https://api.openalex.org",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def get_by_doi(self, doi: str, reference_raw: str = "") -> Optional[CandidatePaper]:
@@ -364,11 +384,12 @@ class OpenAlexClient(BaseClient):
 class SemanticScholarClient(BaseClient):
     """Client for Semantic Scholar Academic Graph API."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="semanticscholar",
             base_url="https://api.semanticscholar.org/graph/v1",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def get_by_doi(self, doi: str, reference_raw: str = "") -> Optional[CandidatePaper]:
@@ -400,11 +421,12 @@ class SemanticScholarClient(BaseClient):
 class UnpaywallClient(BaseClient):
     """Client for Unpaywall open access discovery."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="unpaywall",
             base_url="https://api.unpaywall.org/v2",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def get_oa_info(self, doi: str, reference_raw: str = "") -> Optional[dict[str, Any]]:
@@ -417,11 +439,12 @@ class UnpaywallClient(BaseClient):
 class ArxivClient(BaseClient):
     """Client for arXiv API."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="arxiv",
             base_url="http://export.arxiv.org/api",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def search_by_title(self, title: str, reference_raw: str = "") -> list[CandidatePaper]:
@@ -455,11 +478,12 @@ class ArxivClient(BaseClient):
 class PmcClient(BaseClient):
     """Client for PubMed Central E-utilities."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(
             name="pmc",
             base_url="https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
-            cache=cache,
+            *args,
+            **kwargs,
         )
 
     def search_pmc(self, term: str, reference_raw: str = "") -> list[CandidatePaper]:
@@ -474,14 +498,22 @@ class PmcClient(BaseClient):
 class UnifiedResolver:
     """Orchestrates multi-source paper retrieval and candidate scoring."""
 
-    def __init__(self, cache: Optional[CacheStore] = None):
+    def __init__(
+        self,
+        cache: Optional[CacheStore] = None,
+        timeout: float = 10.0,
+        max_retries: int = 3,
+        backoff_factor: float = 0.5,
+        offline_mode: Optional[bool] = None,
+    ):
         self.cache = cache or cache_store
-        self.crossref = CrossrefClient(cache=self.cache)
-        self.openalex = OpenAlexClient(cache=self.cache)
-        self.semanticscholar = SemanticScholarClient(cache=self.cache)
-        self.unpaywall = UnpaywallClient(cache=self.cache)
-        self.arxiv = ArxivClient(cache=self.cache)
-        self.pmc = PmcClient(cache=self.cache)
+        self.offline_mode = offline_mode if offline_mode is not None else (os.getenv("CREDENCE_OFFLINE", "").lower() in ("1", "true", "yes"))
+        self.crossref = CrossrefClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
+        self.openalex = OpenAlexClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
+        self.semanticscholar = SemanticScholarClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
+        self.unpaywall = UnpaywallClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
+        self.arxiv = ArxivClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
+        self.pmc = PmcClient(cache=self.cache, timeout=timeout, max_retries=max_retries, backoff_factor=backoff_factor, offline_mode=self.offline_mode)
 
     def resolve(self, reference: Reference) -> MatchResult:
         """Resolve a Reference across academic databases and score the best candidate."""
@@ -498,8 +530,14 @@ class UnifiedResolver:
             if cand:
                 return score_candidate(reference, cand)
             else:
-                # DOI lookup returned 404/no-record across all sources -> fake DOI
-                return score_candidate(reference, candidate=None, doi_lookup_failed=True)
+                # Distinguish 404 (doi does not exist) from network error / offline miss
+                logs = self.cache.get_search_logs(reference_raw=raw_ref)
+                recent_statuses = [l["status"] for l in logs[-3:]] if logs else []
+                is_net_err = any(s in ("error", "offline_miss") for s in recent_statuses)
+                if is_net_err:
+                    return score_candidate(reference, candidate=None, network_error=True)
+                else:
+                    return score_candidate(reference, candidate=None, doi_lookup_failed=True)
 
         # 2. Search by title across sources
         candidates: list[CandidatePaper] = []
@@ -511,7 +549,10 @@ class UnifiedResolver:
                 candidates.extend(self.arxiv.search_by_title(reference.title, reference_raw=raw_ref))
 
         if not candidates:
-            return score_candidate(reference, candidate=None)
+            logs = self.cache.get_search_logs(reference_raw=raw_ref)
+            recent_statuses = [l["status"] for l in logs[-3:]] if logs else []
+            is_net_err = any(s in ("error", "offline_miss") for s in recent_statuses)
+            return score_candidate(reference, candidate=None, network_error=is_net_err)
 
         # 3. Score all candidates and pick highest scoring result
         scored_results = [score_candidate(reference, c) for c in candidates]

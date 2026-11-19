@@ -12,6 +12,7 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
+from credence.report.models import AccessTier
 from credence.resolve.reference import Reference
 
 # Optional rapidfuzz import with robust pure-Python fallback
@@ -42,8 +43,21 @@ class CandidatePaper:
     references: list[dict[str, Any]] = field(default_factory=list)
     raw_payload: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def access_tier(self) -> AccessTier:
+        """Derive the access tier from available paper content."""
+        if self.open_access_pdf_url:
+            return AccessTier.FULL_TEXT
+        if self.abstract and len(self.abstract.strip()) >= 30:
+            return AccessTier.ABSTRACT_ONLY
+        if self.title:
+            return AccessTier.METADATA_ONLY
+        return AccessTier.INACCESSIBLE
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["access_tier"] = self.access_tier.value
+        return data
 
 
 @dataclass
@@ -160,6 +174,7 @@ def score_candidate(
     reference: Reference,
     candidate: Optional[CandidatePaper],
     doi_lookup_failed: bool = False,
+    network_error: bool = False,
 ) -> MatchResult:
     """Score a candidate paper against a reference and classify the verification status.
 
@@ -168,12 +183,29 @@ def score_candidate(
       - 'wrong_year': Title and/or DOI matches, but publication year differs by > 1 year
       - 'fake_doi': Reference provided a DOI that does not resolve or conflicts with real record
       - 'fake_title': Reference title has negligible overlap with actual paper / literature
+      - 'inaccessible': Retrieval timed out or network failed; gracefully degraded
       - 'not_found': Reference could not be located in academic databases
     """
     discrepancies: list[str] = []
 
-    # Case 1: Candidate is None (no record found)
+    # Case 1: Candidate is None (no record found or network error)
     if candidate is None:
+        if network_error:
+            discrepancies.append(
+                f"Source retrieval inaccessible: academic database queries timed out or failed; "
+                f"gracefully degrading to inaccessible tier."
+            )
+            return MatchResult(
+                is_match=False,
+                score=0.0,
+                classification="inaccessible",
+                discrepancies=discrepancies,
+                details={
+                    "reason": "network_timeout_or_offline",
+                    "access_tier": AccessTier.INACCESSIBLE.value,
+                }
+            )
+
         if reference.doi and doi_lookup_failed:
             discrepancies.append(f"DOI '{reference.doi}' does not exist in Crossref/OpenAlex/SemanticScholar.")
             return MatchResult(
@@ -181,14 +213,14 @@ def score_candidate(
                 score=0.0,
                 classification="fake_doi",
                 discrepancies=discrepancies,
-                details={"reason": "doi_not_found_in_databases"}
+                details={"reason": "doi_not_found_in_databases", "access_tier": AccessTier.NOT_FOUND.value}
             )
         return MatchResult(
             is_match=False,
             score=0.0,
             classification="not_found",
             discrepancies=["No candidate records found matching query in databases."],
-            details={"reason": "no_results_returned"}
+            details={"reason": "no_results_returned", "access_tier": AccessTier.NOT_FOUND.value}
         )
 
     # Compute component scores
@@ -309,6 +341,7 @@ def score_candidate(
             "retraction_details": candidate.retraction_details,
             "correction_details": candidate.correction_details,
             "publication_type": candidate.publication_type,
+            "access_tier": candidate.access_tier.value,
         },
     )
 

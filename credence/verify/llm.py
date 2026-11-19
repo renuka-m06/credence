@@ -8,6 +8,7 @@ Rules (AGENTS.md):
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -17,6 +18,7 @@ from typing import Any, Optional
 import httpx
 
 from config import settings
+from credence.resolve.cache import CacheStore, cache_store
 
 try:
     from google import genai
@@ -69,63 +71,111 @@ class GeminiClient:
         api_key: Optional[str] = None,
         model_name: str = "gemini-2.5-flash",
         ollama_host: Optional[str] = None,
+        cache: Optional[CacheStore] = None,
+        timeout: float = 10.0,
+        max_retries: int = 2,
+        backoff_factor: float = 0.5,
+        offline_mode: Optional[bool] = None,
     ):
         self.api_key = api_key or settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         self.model_name = model_name
         self.ollama_host = ollama_host or settings.ollama_host or "http://localhost:11434"
-        self._client = None
+        self.cache = cache or cache_store
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.backoff_factor = backoff_factor
+        if offline_mode is not None:
+            self.offline_mode = offline_mode
+        else:
+            self.offline_mode = os.getenv("CREDENCE_OFFLINE", "").lower() in ("1", "true", "yes")
 
-        if self.api_key and HAS_GOOGLE_GENAI:
+        self._client = None
+        if self.api_key and HAS_GOOGLE_GENAI and not self.offline_mode:
             try:
                 self._client = genai.Client(api_key=self.api_key)
             except Exception:
                 self._client = None
 
     def generate_raw(self, prompt: str) -> str:
-        """Execute text generation via Gemini, Ollama, or deterministic fallback."""
-        # 1. Official Google GenAI SDK
+        """Execute text generation via Gemini, Ollama, or deterministic fallback with cache-first lookup."""
+        prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+
+        # 1. Cache-first lookup
+        if self.cache:
+            cached = self.cache.get("llm", prompt_hash)
+            if cached and "raw_text" in cached:
+                return cached["raw_text"]
+
+        # 2. Offline mode: generate deterministically without live HTTP calls
+        is_offline = self.offline_mode or (os.getenv("CREDENCE_OFFLINE", "").lower() in ("1", "true", "yes"))
+        if is_offline or not (self.api_key or self.ollama_host):
+            mock_res = self._mock_generate(prompt)
+            if self.cache:
+                self.cache.set("llm", prompt_hash, {"raw_text": mock_res})
+            return mock_res
+
+        # 3. Official Google GenAI SDK (live)
         if self._client:
-            try:
-                resp = self._client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                )
-                if resp and resp.text:
-                    return resp.text
-            except Exception:
-                pass
+            for attempt in range(self.max_retries):
+                try:
+                    resp = self._client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt,
+                    )
+                    if resp and resp.text:
+                        text = resp.text
+                        if self.cache:
+                            self.cache.set("llm", prompt_hash, {"raw_text": text})
+                        return text
+                except Exception:
+                    time.sleep(self.backoff_factor * (2 ** attempt))
 
-        # 2. REST API fallback if API key is present
+        # 4. REST API fallback if API key is present
         if self.api_key:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
-                payload = {"contents": [{"parts": [{"text": prompt}]}]}
-                with httpx.Client(timeout=15.0) as client:
-                    res = client.post(url, json=payload)
-                    if res.status_code == 200:
-                        data = res.json()
-                        candidates = data.get("candidates", [])
-                        if candidates and "content" in candidates[0]:
-                            parts = candidates[0]["content"].get("parts", [])
-                            if parts and "text" in parts[0]:
-                                return parts[0]["text"]
-            except Exception:
-                pass
+            for attempt in range(self.max_retries):
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+                    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                    with httpx.Client(timeout=self.timeout) as client:
+                        res = client.post(url, json=payload)
+                        if res.status_code == 200:
+                            data = res.json()
+                            candidates = data.get("candidates", [])
+                            if candidates and "content" in candidates[0]:
+                                parts = candidates[0]["content"].get("parts", [])
+                                if parts and "text" in parts[0]:
+                                    text = parts[0]["text"]
+                                    if self.cache:
+                                        self.cache.set("llm", prompt_hash, {"raw_text": text})
+                                    return text
+                        elif res.status_code in (429, 500, 503):
+                            time.sleep(self.backoff_factor * (2 ** attempt))
+                            continue
+                except Exception:
+                    time.sleep(self.backoff_factor * (2 ** attempt))
 
-        # 3. Ollama local fallback
+        # 5. Ollama local fallback
         if self.ollama_host:
-            try:
-                url = f"{self.ollama_host.rstrip('/')}/api/generate"
-                payload = {"model": "llama3", "prompt": prompt, "stream": False, "format": "json"}
-                with httpx.Client(timeout=5.0) as client:
-                    res = client.post(url, json=payload)
-                    if res.status_code == 200:
-                        return res.json().get("response", "")
-            except Exception:
-                pass
+            for attempt in range(self.max_retries):
+                try:
+                    url = f"{self.ollama_host.rstrip('/')}/api/generate"
+                    payload = {"model": "llama3", "prompt": prompt, "stream": False, "format": "json"}
+                    with httpx.Client(timeout=min(self.timeout, 5.0)) as client:
+                        res = client.post(url, json=payload)
+                        if res.status_code == 200:
+                            text = res.json().get("response", "")
+                            if text:
+                                if self.cache:
+                                    self.cache.set("llm", prompt_hash, {"raw_text": text})
+                                return text
+                except Exception:
+                    time.sleep(self.backoff_factor * (2 ** attempt))
 
-        # 4. Mock / Offline deterministic JSON generator for tests
-        return self._mock_generate(prompt)
+        # 6. Graceful degradation: Deterministic JSON generator
+        mock_res = self._mock_generate(prompt)
+        if self.cache:
+            self.cache.set("llm", prompt_hash, {"raw_text": mock_res})
+        return mock_res
 
     def _mock_generate(self, prompt: str) -> str:
         """Deterministic mock response generator for offline and testing environments."""

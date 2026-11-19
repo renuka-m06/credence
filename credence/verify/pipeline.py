@@ -23,8 +23,8 @@ from credence.verify.verdict import SlotStatus, determine_verdict
 
 def verify_claim(
     claim_input: Union[Claim, str],
-    source_text: str,
-    access_tier: AccessTier = AccessTier.FULL_TEXT,
+    source_text: str = "",
+    access_tier: Optional[Union[AccessTier, str]] = None,
     is_outdated: bool = False,
     outdated_evidence: Optional[Union[dict[str, Any], list[Any], str]] = None,
     candidate_paper: Optional[Any] = None,
@@ -43,6 +43,25 @@ def verify_claim(
     5. Adversarial second pass hunting for contradictions and methodological limitations
     6. Final verdict calculation via fixed rule table and computed confidence
     """
+    # Determine effective access tier with graceful degradation
+    if access_tier is not None:
+        effective_tier = AccessTier.from_str(access_tier) if isinstance(access_tier, str) else access_tier
+    elif candidate_paper is not None:
+        effective_tier = getattr(candidate_paper, "access_tier", AccessTier.FULL_TEXT)
+    elif not source_text or not source_text.strip():
+        effective_tier = AccessTier.INACCESSIBLE
+    elif len(source_text.strip()) < 350 and ("abstract" in source_text.lower() or "background" in source_text.lower()):
+        effective_tier = AccessTier.ABSTRACT_ONLY
+    else:
+        effective_tier = AccessTier.FULL_TEXT
+
+    # If source_text is empty, populate from candidate paper abstract or metadata proxy
+    if not source_text.strip() and candidate_paper is not None:
+        if getattr(candidate_paper, "abstract", None):
+            source_text = candidate_paper.abstract
+        elif getattr(candidate_paper, "title", None):
+            source_text = f"{candidate_paper.title}. {candidate_paper.journal or ''} {candidate_paper.year or ''}."
+
     # 1. Structure Claim and extract slots
     if isinstance(claim_input, str):
         claim_id = "claim-1"
@@ -151,7 +170,7 @@ def verify_claim(
             number_match=n_res.passed if n_res else None,
             hedge_match=h_res.passed if h_res else None,
             status=status,
-            access_tier=access_tier,
+            access_tier=effective_tier,
             details={"retrieval_score": retrieval_score},
         ))
 
@@ -168,7 +187,7 @@ def verify_claim(
             quote_verified=q_sim.passed,
             quote_span=q_sim.details.get("span") if q_sim.passed else None,
             status="match" if q_sim.passed else "absent",
-            access_tier=access_tier,
+            access_tier=effective_tier,
             details={"hallucination_tested": True, "caught_by_code": not q_sim.passed},
         ))
 
@@ -182,7 +201,7 @@ def verify_claim(
         claim_id=claim.id,
         is_outdated=is_outdated,
         outdated_evidence=outdated_evidence,
-        access_tier=access_tier,
+        access_tier=effective_tier,
         has_hallucinated_quote=has_hallucinated,
         pass_disagreement=adv_res.pass_disagreement,
     )
@@ -205,11 +224,18 @@ def verify_claim(
 def build_report(
     document_name: str,
     claims: list[Claim],
-    access_tier: AccessTier = AccessTier.FULL_TEXT,
+    access_tier: Optional[AccessTier] = None,
     metadata: Optional[dict[str, Any]] = None,
 ) -> Report:
     """Wire verified claims into a comprehensive human-reviewable Report."""
     total = len(claims)
+    if access_tier is None:
+        if claims:
+            tiers = [c.verdict.access_tier for c in claims if c.verdict]
+            # Use most common or first tier
+            access_tier = tiers[0] if tiers else AccessTier.FULL_TEXT
+        else:
+            access_tier = AccessTier.FULL_TEXT
     supported_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.SUPPORTED)
     partial_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.PARTIALLY_SUPPORTED)
     unsupported_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.UNSUPPORTED)
