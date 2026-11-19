@@ -616,8 +616,8 @@ code, pre {
 }
 
 .navbar-brand-logo {
-  height: 72px;
-  max-height: 74px;
+  height: 88px;
+  max-height: 92px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -956,8 +956,8 @@ code, pre {
     gap: 12px;
   }
   .navbar-brand-logo {
-    height: 52px !important;
-    max-height: 54px !important;
+    height: 60px !important;
+    max-height: 64px !important;
   }
   .summary-strip {
     flex-direction: column !important;

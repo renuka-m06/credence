@@ -52,9 +52,9 @@ export default function Navbar({
             alt="Credence"
             className="navbar-brand-logo"
             style={{
-              height: '72px',
+              height: '88px',
               width: 'auto',
-              maxHeight: '74px',
+              maxHeight: '92px',
               objectFit: 'contain',
               display: 'block',
               borderRadius: '8px'

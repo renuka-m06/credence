@@ -45,6 +45,7 @@ export default function RedTeamPanel({
   });
   const [activeStageTab, setActiveStageTab] = useState('stage_a');
   const [copiedDossier, setCopiedDossier] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Automatically update and present the graph when the selected claim changes
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function RedTeamPanel({
   ];
 
   const handleStartChallenge = async () => {
+    setIsExpanded(true);
     setInvestigating(true);
     setInvestigationData(null);
     setSelectedNode(null);
@@ -248,7 +250,7 @@ export default function RedTeamPanel({
                 <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                 </svg>
-                Investigating Claim...
+                Auditing Claim Integrity...
               </>
             ) : investigationData ? (
               <>
@@ -256,18 +258,16 @@ export default function RedTeamPanel({
                   <path d="M23 4v6h-6"/>
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
-                Re-Run Investigation
+                Re-Run Adversarial Audit
               </>
             ) : (
               <>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="22" y1="12" x2="18" y2="12"/>
-                  <line x1="6" y1="12" x2="2" y2="12"/>
-                  <line x1="12" y1="6" x2="12" y2="2"/>
-                  <line x1="12" y1="22" x2="12" y2="18"/>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                Challenge This Claim
+                Run Adversarial Audit
               </>
             )}
           </button>
@@ -463,6 +463,44 @@ export default function RedTeamPanel({
             </div>
           </div>
 
+          {/* Expandable Evidence Graph & Details Toggle Bar */}
+          <div style={{
+            padding: '12px 28px',
+            background: 'var(--bg-surface-elevated)',
+            borderTop: '1px solid var(--border-line)',
+            borderBottom: isExpanded ? '1px solid var(--border-line)' : 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+              {isExpanded
+                ? 'Interactive Evidence Dependency Graph & 5-Stage Audit are currently visible below.'
+                : 'Click to explore the visual Evidence Dependency Web, replication nodes & multi-stage findings.'}
+            </div>
+            <button
+              onClick={() => setIsExpanded(prev => !prev)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12px',
+                padding: '6px 14px',
+                fontWeight: '600',
+                color: isExpanded ? 'var(--text-primary)' : 'var(--accent-orange)',
+                borderColor: isExpanded ? 'var(--border-line)' : 'var(--accent-orange-border)',
+                background: isExpanded ? 'transparent' : 'var(--accent-orange-subtle)',
+              }}
+            >
+              <span>{isExpanded ? 'Collapse Investigation Details ▲' : 'Explore Evidence Dependency Graph & 5-Stage Findings ▾'}</span>
+            </button>
+          </div>
+
+          {isExpanded && (
+            <>
           {/* Section Navigation Tabs */}
           <div style={{
             display: 'flex',
@@ -1265,6 +1303,8 @@ export default function RedTeamPanel({
                 </div>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       )}
