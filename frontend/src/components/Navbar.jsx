@@ -52,12 +52,11 @@ export default function Navbar({
             alt="Credence"
             className="navbar-brand-logo"
             style={{
-              height: '88px',
+              height: '34px',
               width: 'auto',
-              maxHeight: '92px',
+              maxHeight: '38px',
               objectFit: 'contain',
               display: 'block',
-              borderRadius: '8px'
             }}
           />
           <span style={{
@@ -81,9 +80,9 @@ export default function Navbar({
           display: 'flex',
           alignItems: 'center',
           gap: '3px',
-          background: 'var(--bg-surface-elevated)',
+          background: 'rgba(255, 255, 255, 0.05)',
           padding: '4px',
-          borderRadius: '9px',
+          borderRadius: '9999px',
           border: '1px solid var(--border-line)'
         }}>
           {mainTabs.map(tab => {
@@ -93,12 +92,11 @@ export default function Navbar({
                 key={tab.id}
                 onClick={() => handleNavClick(tab.id)}
                 style={{
-                  background: active ? 'var(--bg-surface)' : 'transparent',
-                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  border: active ? '1px solid var(--border-line)' : '1px solid transparent',
-                  boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
+                  background: active ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                  color: active ? '#ffffff' : 'var(--text-secondary)',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '9999px',
                   fontSize: '12px',
                   fontWeight: active ? '600' : '500',
                   cursor: 'pointer',
@@ -123,23 +121,22 @@ export default function Navbar({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: 'var(--bg-surface-elevated)',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid var(--border-line)',
               color: 'var(--text-primary)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: 'var(--shadow-sm)'
             }}
           >
             {isLight ? (
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
               </svg>
             ) : (
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="4"/>
                 <path d="M12 2v2"/><path d="M12 20v2"/>
                 <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
@@ -160,23 +157,22 @@ export default function Navbar({
               fontSize: '11.5px',
               fontWeight: '600',
               cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: '8px',
+              padding: '6px 14px',
+              borderRadius: '9999px',
               transition: 'all 0.2s ease',
-              background: demoMode ? 'var(--supported-bg)' : 'var(--bg-surface-elevated)',
-              color: demoMode ? 'var(--supported-color)' : 'var(--text-secondary)',
-              border: demoMode ? '1px solid var(--supported-border)' : '1px solid var(--border-line)',
-              boxShadow: 'var(--shadow-sm)'
+              background: 'rgba(74, 222, 128, 0.12)',
+              color: '#4ade80',
+              border: '1px solid rgba(74, 222, 128, 0.3)',
             }}
           >
             <span style={{
               width: '7px',
               height: '7px',
               borderRadius: '50%',
-              background: demoMode ? 'var(--supported-color)' : 'var(--text-tertiary)',
-              boxShadow: demoMode ? '0 0 8px var(--supported-color)' : 'none'
+              background: '#4ade80',
+              boxShadow: '0 0 8px #4ade80'
             }} />
-            <span>{demoMode ? 'Demo (Offline)' : 'Live Gateway'}</span>
+            <span>Demo (Offline)</span>
           </button>
 
           {/* Mobile Hamburger Toggle Button */}
