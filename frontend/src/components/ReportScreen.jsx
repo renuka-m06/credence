@@ -152,7 +152,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
         }}>
           📄
         </div>
-        <h2 style={{ marginBottom: '12px', color: '#fff', fontFamily: 'var(--font-serif)', fontSize: '28px' }}>
+        <h2 style={{ marginBottom: '12px', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', fontSize: '28px' }}>
           No Empirical Claims Detected
         </h2>
         <p style={{ color: 'var(--muted)', maxWidth: '520px', margin: '0 auto 24px', fontSize: '14px', lineHeight: 1.6 }}>
@@ -349,7 +349,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
               <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '600' }}>DOCUMENT:</span>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: '700', color: '#fff' }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
                 {report.document_name}
               </span>
               <span style={{
@@ -458,7 +458,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ fontSize: '16px', color: '#fff', fontWeight: '700' }}>
+                <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', fontWeight: '700' }}>
                   Export Credence Verification Dossier
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
@@ -485,7 +485,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               >
                 <span style={{ fontSize: '20px' }}>📄</span>
                 <div>
-                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Annotated HTML Dossier</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13px' }}>Annotated HTML Dossier</div>
                   <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Styled report with print-to-PDF</div>
                 </div>
               </button>
@@ -497,7 +497,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               >
                 <span style={{ fontSize: '20px' }}>📝</span>
                 <div>
-                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Academic Markdown (.md)</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13px' }}>Academic Markdown (.md)</div>
                   <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Table format for peer review</div>
                 </div>
               </button>
@@ -509,7 +509,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               >
                 <span style={{ fontSize: '20px' }}>📦</span>
                 <div>
-                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Evidence JSON (.json)</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13px' }}>Evidence JSON (.json)</div>
                   <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Full machine-readable ledger</div>
                 </div>
               </button>
@@ -575,7 +575,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     🔍
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '17px', color: '#fff', fontWeight: '700', margin: 0 }}>
+                    <h3 style={{ fontSize: '17px', color: 'var(--text-primary)', fontWeight: '700', margin: 0 }}>
                       Source Evidence Inspector · {selectedClaim.id.toUpperCase()}
                     </h3>
                     <p style={{ fontSize: '11px', color: 'var(--muted)', margin: 0 }}>
@@ -612,7 +612,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                       <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>
                         SOURCE PAPER
                       </span>
-                      <strong style={{ color: '#fff', fontSize: '12px', display: 'block', marginTop: '2px', lineHeight: 1.3 }}>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '12px', display: 'block', marginTop: '2px', lineHeight: 1.3 }}>
                         {sourceEvidenceData?.paper_title || paperTitle}
                       </strong>
                     </div>
@@ -639,7 +639,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                       <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>
                         LOCATION
                       </span>
-                      <strong style={{ color: '#fff', display: 'block', marginTop: '2px' }}>
+                      <strong style={{ color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
                         {sourceEvidenceData?.is_docx
                           ? `Paragraph ${sourceEvidenceData.paragraph_number} · ${sourceEvidenceData.section_name}`
                           : `Page ${sourceEvidenceData?.page_number || pageNum || '1'} · ${sourceEvidenceData?.section_name || secName}`}
@@ -661,7 +661,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
                       ASSERTED SCIENTIFIC CLAIM
                     </span>
-                    <p style={{ fontSize: '13px', color: '#fff', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
                       "{sourceEvidenceData?.claim_text || selectedClaim.text}"
                     </p>
                   </div>
@@ -855,7 +855,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 color: 'var(--muted)',
                 fontSize: '13px'
               }}>
-                <p style={{ marginBottom: '8px', color: '#fff', fontWeight: '600' }}>No Claims Under "{filter}"</p>
+                <p style={{ marginBottom: '8px', color: 'var(--text-primary)', fontWeight: '600' }}>No Claims Under "{filter}"</p>
                 <p style={{ fontSize: '11px', color: 'var(--faint)', marginBottom: '14px', lineHeight: 1.5 }}>
                   No assertions in this manuscript match this verdict category.
                 </p>
@@ -933,7 +933,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               padding: '60px 32px',
               textAlign: 'center'
             }}>
-              <h3 style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>
                 No Claims Under Filter "{filter}"
               </h3>
               <p style={{ color: 'var(--muted)', fontSize: '13px', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.5 }}>
@@ -964,7 +964,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     Citation: [{selectedClaim.citation_keys?.join(', ')}]
                   </span>
                 </div>
-                <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#fff', lineHeight: 1.4 }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: 1.4 }}>
                   "{selectedClaim.text}"
                 </h2>
               </div>
@@ -1112,7 +1112,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                         background: 'linear-gradient(90deg, var(--orange), var(--orange2))'
                       }} />
                     </div>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
                       {((selectedClaim.verdict?.confidence || 0) * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -1165,7 +1165,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
                       SOURCE PAPER
                     </span>
-                    <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600', display: 'block', lineHeight: 1.3 }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600', display: 'block', lineHeight: 1.3 }}>
                       {paperTitle}
                     </span>
                     {paperDoi && (
@@ -1184,7 +1184,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
                       SECTION
                     </span>
-                    <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600' }}>
                       {secName}
                     </span>
                   </div>
@@ -1193,7 +1193,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
                       {paraNum !== null && pageNum === null ? 'PARAGRAPH' : 'PAGE NUMBER'}
                     </span>
-                    <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600' }}>
                       {paraNum !== null && pageNum === null ? `Paragraph ${paraNum}` : (pageNum ? `Page ${pageNum}` : 'N/A')}
                     </span>
                   </div>
@@ -1381,7 +1381,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                           <td style={{ padding: '10px 14px', textTransform: 'uppercase', fontWeight: '600', fontSize: '11px' }}>
                             {slot.field_type}
                           </td>
-                          <td style={{ padding: '10px 14px', color: '#fff', fontWeight: '500' }}>
+                          <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: '500' }}>
                             {slot.expected_value}
                           </td>
                           <td style={{ padding: '10px 14px' }}>
@@ -1426,7 +1426,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               flexWrap: 'wrap'
             }}>
               <div>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#fff', display: 'block' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)', display: 'block' }}>
                   Academic Reviewer Triage
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
@@ -1483,7 +1483,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 gap: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600' }}>
                     Override Claim Verdict ({selectedClaim.id})
                   </span>
                   <button
@@ -1603,7 +1603,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 gap: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600' }}>
                     Add Reviewer Comment ({selectedClaim.id})
                   </span>
                   <button
@@ -1795,7 +1795,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
               <span style={{ fontSize: '20px' }}>⚠️</span>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: '700', color: '#fff', margin: 0 }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
                 Missing Citations & Bibliographic Diagnostics
               </h3>
               <span style={{
@@ -1915,7 +1915,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '14.5px', color: '#fff', fontWeight: '500', lineHeight: 1.5, fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '14.5px', color: 'var(--text-primary)', fontWeight: '500', lineHeight: 1.5, fontStyle: 'italic' }}>
                     "{subjectText}"
                   </div>
 

@@ -257,7 +257,7 @@ export default function BenchmarkScreen() {
               </span>
             )}
           </div>
-          <h1 style={{ fontSize: '34px', color: '#fff', marginBottom: '10px' }}>
+          <h1 style={{ fontSize: '34px', color: 'var(--text-primary)', marginBottom: '10px' }}>
             {isReal ? 'Real-World Academic Benchmark & Validation' : 'Synthetic Corruption Evaluation & Calibration'}
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '14px', maxWidth: '840px', lineHeight: 1.6 }}>
@@ -288,7 +288,7 @@ export default function BenchmarkScreen() {
 
           <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '12px', padding: '18px 20px' }}>
             <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: '600', textTransform: 'uppercase' }}>MACRO F1 SCORE</div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#fff', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '4px' }}>
               {data.macro_f1?.toFixed(4) || '1.0000'}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--faint)', marginTop: '2px' }}>
@@ -310,7 +310,7 @@ export default function BenchmarkScreen() {
 
           <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '12px', padding: '18px 20px' }}>
             <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: '600', textTransform: 'uppercase' }}>CALIBRATION ERROR (ECE)</div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#fff', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '4px' }}>
               {data.ece?.toFixed(3) || '0.063'}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--faint)', marginTop: '2px' }}>
@@ -367,7 +367,7 @@ export default function BenchmarkScreen() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
+              <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>
                 Confusion Matrix: Ground Truth vs Predicted Verdicts
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--faint)', margin: '4px 0 0' }}>
@@ -389,7 +389,7 @@ export default function BenchmarkScreen() {
                       {cls.short}
                     </th>
                   ))}
-                  <th style={{ padding: '10px 12px', color: '#fff', fontWeight: '700' }}>TOTAL</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: '700' }}>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -425,7 +425,7 @@ export default function BenchmarkScreen() {
                           </td>
                         );
                       })}
-                      <td style={{ padding: '12px', fontWeight: '800', color: '#fff', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '12px', fontWeight: '800', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                         {rowTotal}
                       </td>
                     </tr>
@@ -446,7 +446,7 @@ export default function BenchmarkScreen() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
+              <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>
                 {isReal ? '9-Category Academic Literature Validation Breakdown' : '7-Category Synthetic Corruption Breakdown'}
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--faint)', margin: '4px 0 0' }}>
@@ -482,7 +482,7 @@ export default function BenchmarkScreen() {
                   gap: '8px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontWeight: '700', fontSize: '13px', color: '#fff' }}>
+                    <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
                       {label}
                     </div>
                     <span style={{
@@ -528,7 +528,7 @@ export default function BenchmarkScreen() {
             borderRadius: '16px',
             padding: '24px 28px'
           }}>
-            <h3 style={{ fontSize: '18px', color: '#fff', marginBottom: '6px' }}>
+            <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '6px' }}>
               Per-Verdict Precision & Recall
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--faint)', marginBottom: '16px' }}>
@@ -559,7 +559,7 @@ export default function BenchmarkScreen() {
                       <td style={{ padding: '10px 0', fontFamily: 'monospace' }}>
                         {(m.recall ?? 0).toFixed(4)}
                       </td>
-                      <td style={{ padding: '10px 0', fontFamily: 'monospace', fontWeight: '700', color: '#fff' }}>
+                      <td style={{ padding: '10px 0', fontFamily: 'monospace', fontWeight: '700', color: 'var(--text-primary)' }}>
                         {(m.f1 ?? 0).toFixed(4)}
                       </td>
                       <td style={{ padding: '10px 0', textAlign: 'right', color: 'var(--muted)' }}>
@@ -580,7 +580,7 @@ export default function BenchmarkScreen() {
             padding: '24px 28px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>Confidence Calibration</h3>
+              <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>Confidence Calibration</h3>
               <span style={{ fontSize: '11px', color: 'var(--orange2)', fontWeight: '600' }}>
                 ECE: {data.ece?.toFixed(3) || '0.063'}
               </span>
@@ -602,7 +602,7 @@ export default function BenchmarkScreen() {
                         Bin {bin.bin_name} <span style={{ color: 'var(--faint)', fontSize: '11px' }}>(conf ~{meanConfPct}%)</span>
                       </span>
                       <span style={{ color: 'var(--muted)' }}>
-                        Accuracy: <strong style={{ color: '#fff' }}>{accPct}%</strong> (n={bin.count})
+                        Accuracy: <strong style={{ color: 'var(--text-primary)' }}>{accPct}%</strong> (n={bin.count})
                       </span>
                     </div>
                     <div style={{
@@ -642,7 +642,7 @@ export default function BenchmarkScreen() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
+                <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>
                   Annotated Academic Claim Dossier & Inspection
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--faint)', margin: '4px 0 0' }}>
@@ -703,7 +703,7 @@ export default function BenchmarkScreen() {
                         </span>
                       </td>
                       <td style={{ padding: '10px', verticalAlign: 'top', maxWidth: '240px' }}>
-                        <div style={{ fontWeight: '600', color: '#fff', marginBottom: '2px' }}>
+                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
                           {rec.paper_title || 'Uncited / General Topic'}
                         </div>
                         {rec.doi && (
@@ -734,7 +734,7 @@ export default function BenchmarkScreen() {
                           ✓ {rec.predicted}
                         </span>
                       </td>
-                      <td style={{ padding: '10px', verticalAlign: 'top', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700', color: '#fff' }}>
+                      <td style={{ padding: '10px', verticalAlign: 'top', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700', color: 'var(--text-primary)' }}>
                         {(rec.confidence * 100).toFixed(0)}%
                       </td>
                     </tr>

@@ -146,6 +146,27 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
   const [demoMode, setDemoMode] = useState(true); // Default to offline demo mode (no live external API calls)
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('credence_theme');
+      if (saved) return saved;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
+      }
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('credence_theme', theme);
+    }
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleToggleDemoMode = () => {
     setDemoMode(prev => !prev);
@@ -394,6 +415,8 @@ export default function App() {
         setCurrentScreen={setCurrentScreen}
         demoMode={demoMode}
         onToggleDemoMode={handleToggleDemoMode}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
       
       <main style={{ flex: 1 }}>
