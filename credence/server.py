@@ -39,6 +39,7 @@ from credence.resolve.sources import UnifiedResolver
 from credence.security.rate_limiter import rate_limit_dependency
 from credence.security.upload import validate_and_save_upload
 from credence.verify.pipeline import build_report, verify_claim
+from credence.verify.red_team import get_investigations_for_claim, run_red_team_investigation
 
 logger = logging.getLogger("credence.server")
 
@@ -561,6 +562,51 @@ def get_report_missing_citations(report_id: str):
         "total_warnings": len(warnings),
         "missing_citations": warnings,
         "summary": rep_with_ledger.get("summary", {}),
+    }
+
+
+class RedTeamChallengeRequest(BaseModel):
+    claim_id: str
+    report_id: Optional[str] = None
+    claim_text: Optional[str] = ""
+    citation_key: Optional[str] = None
+    doi: Optional[str] = None
+    paper_title: Optional[str] = None
+    original_verdict: Optional[str] = "needs review"
+    original_confidence: Optional[float] = 0.5
+    demo_mode: Optional[bool] = False
+
+
+@app.post("/api/redteam/challenge")
+@app.post("/redteam/challenge")
+def challenge_claim(req: RedTeamChallengeRequest):
+    """Execute live 5-stage Credence Red Team adversarial investigation on a scientific claim."""
+    report = run_red_team_investigation(
+        claim_id=req.claim_id,
+        claim_text=req.claim_text or f"Scientific assertion for claim {req.claim_id}",
+        target_doi=req.doi,
+        paper_title=req.paper_title,
+        citation_key=req.citation_key,
+        original_verdict=req.original_verdict or "needs review",
+        original_confidence=req.original_confidence if req.original_confidence is not None else 0.5,
+        demo_mode=req.demo_mode or False,
+        report_id=req.report_id,
+    )
+    return {
+        "status": "ok",
+        "investigation": report.to_dict(),
+    }
+
+
+@app.get("/api/redteam/investigations/{claim_id}")
+@app.get("/redteam/investigations/{claim_id}")
+def get_redteam_investigations(claim_id: str):
+    """Retrieve past adversarial investigations for a claim."""
+    results = get_investigations_for_claim(claim_id)
+    return {
+        "status": "ok",
+        "claim_id": claim_id,
+        "investigations": results,
     }
 
 

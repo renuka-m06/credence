@@ -142,7 +142,7 @@ export default function App() {
       const s = params.get('screen');
       if (s) return s;
     }
-    return 'report'; // Default to report screen so immediate view shows report
+    return 'home';
   };
   const [currentScreen, setCurrentScreen] = useState(getInitialScreen);
   const [report, setReport] = useState(FALLBACK_DEMO_REPORT);
@@ -441,6 +441,8 @@ export default function App() {
             report={report}
             onReviewClaim={handleReviewClaim}
             onNavigateHome={() => setCurrentScreen('home')}
+            demoMode={demoMode}
+            theme={theme}
           />
         )}
         {currentScreen === 'reports' && (

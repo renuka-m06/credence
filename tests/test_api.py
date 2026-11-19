@@ -180,3 +180,39 @@ def test_list_reports_endpoint():
     assert data.get("status") == "ok"
     assert isinstance(data.get("reports"), list)
     assert data.get("total", 0) >= 1
+
+
+def test_api_redteam_challenge_endpoint():
+    """Verify POST /api/redteam/challenge executes adversarial investigation."""
+    payload = {
+        "claim_id": "claim-2",
+        "report_id": "demo-report-1",
+        "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [1]",
+        "citation_key": "1",
+        "doi": "10.1056/NEJMoa1702345",
+        "original_verdict": "supported",
+        "original_confidence": 0.90,
+        "demo_mode": True,
+    }
+    resp = client.post("/api/redteam/challenge", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data.get("status") == "ok"
+    inv = data.get("investigation")
+    assert inv is not None
+    assert inv["claim_id"] == "claim-2"
+    assert inv["overall_outcome"] == "Contested by contradictory evidence"
+    assert len(inv["stage_b_counter_evidence"]) >= 1
+    assert "nodes" in inv["dependency_graph"]
+    assert len(inv["timeline"]) >= 1
+
+
+def test_api_redteam_history_endpoint():
+    """Verify GET /api/redteam/investigations/{claim_id} retrieves past runs."""
+    resp = client.get("/api/redteam/investigations/claim-2")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data.get("status") == "ok"
+    assert data.get("claim_id") == "claim-2"
+    assert isinstance(data.get("investigations"), list)
+    assert len(data.get("investigations")) >= 1

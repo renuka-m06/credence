@@ -11,47 +11,19 @@ export default function HomeScreen({
   demoMode,
 }) {
   const [dragOver, setDragOver] = useState(false);
-  const [heroImageSrc, setHeroImageSrc] = useState(null);
-  const [imageChecked, setImageChecked] = useState(false);
+  const [heroImageSrc, setHeroImageSrc] = useState('/assets/hero-research.jpg');
+  const [imageChecked, setImageChecked] = useState(true);
   const fileInputRef = useRef(null);
   const heroImageInputRef = useRef(null);
 
-  // Probe public/assets for the user-supplied photograph
+  // Ensure permanent hero research photograph is active
   useEffect(() => {
-    const candidatePaths = [
-      '/assets/hero-research.jpg',
-      '/assets/hero-research.png',
-      '/assets/research-book.jpg',
-      '/assets/research-book.png',
-      '/assets/hero.jpg',
-      '/assets/hero.png',
-    ];
-
-    let found = false;
-    let idx = 0;
-
-    const testNext = () => {
-      if (idx >= candidatePaths.length) {
-        setImageChecked(true);
-        return;
-      }
-      const img = new Image();
-      const currentPath = candidatePaths[idx];
-      img.onload = () => {
-        if (!found) {
-          found = true;
-          setHeroImageSrc(currentPath);
-          setImageChecked(true);
-        }
-      };
-      img.onerror = () => {
-        idx++;
-        testNext();
-      };
-      img.src = currentPath;
+    const img = new Image();
+    img.src = '/assets/hero-research.jpg';
+    img.onload = () => {
+      setHeroImageSrc('/assets/hero-research.jpg');
+      setImageChecked(true);
     };
-
-    testNext();
   }, []);
 
   const handleDrop = (e) => {
@@ -207,13 +179,19 @@ export default function HomeScreen({
                   <img
                     src={heroImageSrc}
                     alt="Research literature with magnifying glass and open volume"
+                    onError={(e) => {
+                      // Ensure permanent path if relative resolution fluctuates
+                      if (e.target.src && !e.target.src.endsWith('/assets/hero-research.jpg')) {
+                        e.target.src = '/assets/hero-research.jpg';
+                      }
+                    }}
                     style={{
                       width: '100%',
                       height: 'auto',
                       maxHeight: '460px',
-                      objectFit: 'contain',
+                      objectFit: 'cover',
                       display: 'block',
-                      borderRadius: '12px'
+                      borderRadius: '13px'
                     }}
                   />
                 ) : (

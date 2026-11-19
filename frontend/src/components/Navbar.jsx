@@ -34,14 +34,14 @@ export default function Navbar({
       position: 'sticky',
       top: 0,
       zIndex: 50,
-      padding: '12px 0',
+      padding: '8px 0',
       transition: 'background-color 0.25s ease, border-color 0.25s ease'
     }}>
       <div className="container navbar-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
         {/* Official Brand Logo (Switches according to selected theme) */}
         <div 
           onClick={() => handleNavClick('home')}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && handleNavClick('home')}
@@ -50,24 +50,25 @@ export default function Navbar({
           <img
             src={isLight ? '/assets/credence-logo-light.png' : '/assets/credence-logo-dark.png'}
             alt="Credence"
+            className="navbar-brand-logo"
             style={{
-              height: '46px',
+              height: '72px',
               width: 'auto',
-              maxHeight: '48px',
+              maxHeight: '74px',
               objectFit: 'contain',
               display: 'block',
               borderRadius: '8px'
             }}
           />
           <span style={{
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: '700',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
             background: 'var(--accent-orange-subtle)',
             color: 'var(--accent-orange)',
-            padding: '2px 7px',
-            borderRadius: '4px',
+            padding: '3px 8px',
+            borderRadius: '5px',
             border: '1px solid var(--accent-orange-border)',
             alignSelf: 'center'
           }}>
