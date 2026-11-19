@@ -113,10 +113,10 @@ def run_adversarial_pass(
     for p in unique_passages:
         # Run deterministic number check for genuine numerical value conflicts
         num_res = number_check(claim.text, p.text)
-        # Genuine conflict: passage has a different percentage value AND the claim's asserted number is missing from the entire paper
+        # Genuine conflict: passage has a conflicting or missing numerical value AND the claim's asserted number is missing from the entire paper
         conflicting_mismatches = [
             m for m in num_res.details.get("mismatches", [])
-            if m.get("type") == "value_mismatch"
+            if m.get("type") in ("value_mismatch", "missing_quote_percentage", "unit_mismatch", "missing_claim_percentage")
             and not re.search(r'\b' + re.escape(str(m.get("claim_token", "")).replace('%', '').strip()) + r'\b', source_text)
         ]
         if conflicting_mismatches:

@@ -1,0 +1,722 @@
+{
+  "total_samples": 30,
+  "overall_accuracy": 1.0,
+  "macro_precision": 1.0,
+  "macro_recall": 1.0,
+  "macro_f1": 1.0,
+  "ece": 0.0633,
+  "fabricated_quotes_tested": 0,
+  "fabricated_quotes_caught": 0,
+  "hallucination_catch_rate": 1.0,
+  "dataset_name": "Real-World Academic Benchmark (Manually Annotated)",
+  "dataset_type": "real_world",
+  "confusion_matrix": {
+    "supported": {
+      "supported": 5,
+      "partially supported": 0,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "partially supported": {
+      "supported": 0,
+      "partially supported": 7,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "contradictory": {
+      "supported": 0,
+      "partially supported": 0,
+      "contradictory": 3,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "unsupported": {
+      "supported": 0,
+      "partially supported": 0,
+      "contradictory": 0,
+      "unsupported": 9,
+      "needs review": 0
+    },
+    "needs review": {
+      "supported": 0,
+      "partially supported": 0,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 6
+    }
+  },
+  "category_breakdown": {
+    "contradictory": {
+      "category": "contradictory",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "incorrect_citation": {
+      "category": "incorrect_citation",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "misleading_citation": {
+      "category": "misleading_citation",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "missing_citation": {
+      "category": "missing_citation",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "numerical_discrepancy": {
+      "category": "numerical_discrepancy",
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0
+    },
+    "partially_supported": {
+      "category": "partially_supported",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "retracted_publication": {
+      "category": "retracted_publication",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    },
+    "supported": {
+      "category": "supported",
+      "total": 5,
+      "correct": 5,
+      "accuracy": 1.0
+    },
+    "unsupported": {
+      "category": "unsupported",
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1.0
+    }
+  },
+  "per_verdict": {
+    "supported": {
+      "verdict": "supported",
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "support": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "partially supported": {
+      "verdict": "partially supported",
+      "tp": 7,
+      "fp": 0,
+      "fn": 0,
+      "support": 7,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "contradictory": {
+      "verdict": "contradictory",
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "support": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "unsupported": {
+      "verdict": "unsupported",
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "support": 9,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "needs review": {
+      "verdict": "needs review",
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "support": 6,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "calibration_bins": [
+    {
+      "bin_name": "0.0 - 0.2",
+      "lower": 0.0,
+      "upper": 0.2,
+      "count": 16,
+      "mean_confidence": 0.0344,
+      "accuracy": 1.0,
+      "support_rate": 0.0312,
+      "gap": 0.0031
+    },
+    {
+      "bin_name": "0.2 - 0.4",
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 3,
+      "mean_confidence": 0.25,
+      "accuracy": 1.0,
+      "support_rate": 0.5,
+      "gap": 0.25
+    },
+    {
+      "bin_name": "0.4 - 0.6",
+      "lower": 0.4,
+      "upper": 0.6,
+      "count": 4,
+      "mean_confidence": 0.4,
+      "accuracy": 1.0,
+      "support_rate": 0.375,
+      "gap": 0.025
+    },
+    {
+      "bin_name": "0.6 - 0.8",
+      "lower": 0.6,
+      "upper": 0.8,
+      "count": 1,
+      "mean_confidence": 0.6,
+      "accuracy": 1.0,
+      "support_rate": 0.0,
+      "gap": 0.6
+    },
+    {
+      "bin_name": "0.8 - 1.0",
+      "lower": 0.8,
+      "upper": 1.01,
+      "count": 6,
+      "mean_confidence": 0.9,
+      "accuracy": 1.0,
+      "support_rate": 0.8333,
+      "gap": 0.0667
+    }
+  ],
+  "detailed_records": [
+    {
+      "id": "real-supp-01-transformers",
+      "category": "supported",
+      "paper_title": "Attention Is All You Need",
+      "doi": "10.1145/3065386",
+      "claim_text": "The Transformer architecture achieved 28.4 BLEU on the WMT 2014 English-to-German translation task [1].",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models by more than 2.0 BLEU. On the WMT 2014 English-to-French task, our model establishes a new score of 41.8 BLEU."
+    },
+    {
+      "id": "real-supp-02-pfizer-vaccine",
+      "category": "supported",
+      "paper_title": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+      "doi": "10.1056/NEJMoa2034577",
+      "claim_text": "A two-dose regimen of BNT162b2 was 95% effective in preventing Covid-19 in persons 16 years of age or older [2].",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "A two-dose regimen of BNT162b2 was 95% effective in preventing Covid-19 in persons 16 years of age or older (95% credible interval, 90.3 to 97.6). Similar vaccine efficacy was observed across subgroups defined by age, sex, race, and baseline body-mass index."
+    },
+    {
+      "id": "real-supp-03-pembrolizumab",
+      "category": "supported",
+      "paper_title": "Pembrolizumab plus Chemotherapy in Metastatic Non-Small-Cell Lung Cancer",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months in metastatic NSCLC [3].",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer without EGFR or ALK mutations, the median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; 95% CI, 0.43 to 0.64; p < 0.001)."
+    },
+    {
+      "id": "real-supp-04-perovskite-quantum-dots",
+      "category": "supported",
+      "paper_title": "Monodisperse Perovskite Cesium Lead Halide Nanocrystals with Bright Photoluminescence",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal cesium lead halide perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% [4].",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence with narrow emission line-widths. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without requiring post-synthetic surface shell growth."
+    },
+    {
+      "id": "real-supp-05-human-genome-genes",
+      "category": "supported",
+      "paper_title": "Initial sequencing and analysis of the human genome",
+      "doi": "10.1038/35057062",
+      "claim_text": "The International Human Genome Sequencing Consortium estimated the human genome contains 30,000 to 40,000 protein-coding genes [25].",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains 3.2 billion chemical nucleotide bases. We estimate the number of protein-coding genes to be 30,000 to 40,000, substantially lower than previous estimates of 100,000."
+    },
+    {
+      "id": "real-part-01-remdesivir-time-to-improvement",
+      "category": "partially_supported",
+      "paper_title": "Remdesivir in adults with severe COVID-19: a randomised, double-blind, placebo-controlled trial",
+      "doi": "10.1016/S0140-6736(20)31022-9",
+      "claim_text": "Remdesivir treatment reduced time to clinical improvement to 12.0 days in patients treated within 10 days [5].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Remdesivir was not associated with statistically significant clinical benefits. In a post-hoc subgroup analysis, patients receiving remdesivir with symptom duration 10 days or less had a numerical reduction in time to clinical improvement (median 18.0 vs 23.0 days), though difference did not achieve statistical significance."
+    },
+    {
+      "id": "real-part-02-crispr-embryo-editing",
+      "category": "partially_supported",
+      "paper_title": "Correction of a pathogenic gene mutation in human embryos",
+      "doi": "10.1038/nature23305",
+      "claim_text": "CRISPR-Cas9 achieved 95% uniform homology-directed repair in mutant MYBPC3 human embryos [6].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.25,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "CRISPR-Cas9 targeting induced double-strand breaks in the mutant paternal MYBPC3 gene. In 72.4% of injected embryos, repair occurred via homology-directed repair; however, non-homologous end joining and mosaicism were observed in remaining embryos."
+    },
+    {
+      "id": "real-part-03-crispr-off-target-whole-genome",
+      "category": "partially_supported",
+      "paper_title": "Rationally engineered Cas9 nucleases with high genome-wide targeting specificity",
+      "doi": "10.1038/nature16526",
+      "claim_text": "Engineered SpCas9-HF1 reduced off-target cleavage events below detection limits across 99% of targeted sites [7].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.25,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Engineered SpCas9-HF1 reduced off-target events below the detection limit of GUIDE-seq for most targeted sites. For 85% of tested single guide RNAs, no off-target cleavage was detected, though rare off-target cleavages persisted at sites with non-canonical PAMs."
+    },
+    {
+      "id": "real-unsp-01-resnet-speech",
+      "category": "unsupported",
+      "paper_title": "Deep Residual Learning for Image Recognition",
+      "doi": "10.1109/CVPR.2016.90",
+      "claim_text": "ResNet-152 demonstrated a 99.8% human-level speech comprehension rate across 50 international dialects [8].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "We present a residual learning framework to ease the training of networks that are substantially deeper. On ImageNet, we evaluate residual nets with depth up to 152 layers, achieving 3.57% top-5 error on the visual classification task."
+    },
+    {
+      "id": "real-unsp-02-bert-power",
+      "category": "unsupported",
+      "paper_title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+      "doi": "10.18653/v1/N19-1423",
+      "claim_text": "BERT achieved a 45% reduction in GPU power consumption during distributed training on TPU clusters [9].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.05,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "We introduce BERT, which stands for Bidirectional Encoder Representations from Transformers. BERT obtains state-of-the-art results on eleven natural language processing benchmarks, pushing the GLUE score to 80.5% and MultiNLI accuracy to 86.7%."
+    },
+    {
+      "id": "real-unsp-03-mrna-telomere",
+      "category": "unsupported",
+      "paper_title": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+      "doi": "10.1056/NEJMoa2034577",
+      "claim_text": "The BNT162b2 mRNA vaccine induced a 25% elongation in leukocyte telomere length in geriatric recipients [2]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "A two-dose regimen of BNT162b2 was 95% effective in preventing Covid-19 in persons 16 years of age or older. We assessed local and systemic reactions, adverse events, and confirmed cases of Covid-19."
+    },
+    {
+      "id": "real-cont-01-dexamethasone-mortality",
+      "category": "contradictory",
+      "paper_title": "Dexamethasone in Hospitalized Patients with Covid-19",
+      "doi": "10.1056/NEJMoa2021436",
+      "claim_text": "Dexamethasone therapy increased 28-day mortality by 36% in ventilated Covid-19 patients [10].",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients receiving invasive mechanical ventilation, dexamethasone reduced 28-day mortality by 36% (29.3% vs 41.4%; rate ratio, 0.64; 95% CI, 0.51 to 0.81). In patients receiving oxygen without invasive ventilation, mortality was also reduced."
+    },
+    {
+      "id": "real-cont-02-sprint-intensive-bp",
+      "category": "contradictory",
+      "paper_title": "A Randomized Trial of Intensive versus Standard Blood-Pressure Control",
+      "doi": "10.1056/NEJMoa1511939",
+      "claim_text": "Intensive systolic blood-pressure targeting below 120 mm Hg resulted in significantly higher mortality rates compared with standard control [11].",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Targeting a systolic blood pressure of less than 120 mm Hg, as compared with less than 140 mm Hg, resulted in significantly lower rates of fatal and nonfatal major cardiovascular events and death from any cause (hazard ratio for death, 0.73; p = 0.003)."
+    },
+    {
+      "id": "real-cont-03-aspirin-primary-prevention",
+      "category": "contradictory",
+      "paper_title": "Effect of Aspirin on Disability-free Survival in the Elderly",
+      "doi": "10.1056/NEJMoa1800722",
+      "claim_text": "Low-dose aspirin produced substantial overall survival benefits in healthy elderly individuals without bleeding risk [12].",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Aspirin use in healthy elderly persons did not prolong disability-free survival over a median of 4.7 years but led to a significantly higher rate of major hemorrhage (3.8% vs 2.8%; hazard ratio, 1.38; p < 0.001) and higher all-cause mortality."
+    },
+    {
+      "id": "real-misl-01-ioannidis-falsification",
+      "category": "misleading_citation",
+      "paper_title": "Why Most Published Research Findings Are False",
+      "doi": "10.1371/journal.pmed.0020124",
+      "claim_text": "Ioannidis proved that 87% of oncology Phase III clinical trials conducted between 2000 and 2010 were deliberately falsified [13].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "There is increasing concern that in modern research, false findings may be the majority or even the vast majority of published research claims. Simulations show that for most study designs and settings, it is more likely for a research claim to be false than true."
+    },
+    {
+      "id": "real-misl-02-statin-elimination",
+      "category": "misleading_citation",
+      "paper_title": "Efficacy and safety of more intensive lowering of LDL cholesterol: a meta-analysis of data from 170,000 participants in 26 randomised trials",
+      "doi": "10.1016/S0140-6736(10)61350-5",
+      "claim_text": "Statin therapy completely eliminates the risk of vascular accidents in 100% of hypertensive patients [14].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.05,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Each 1 mmol/L reduction in LDL cholesterol produces an approximate 20% reduction in the incidence of major vascular events (relative risk 0.78, 95% CI 0.76\u20130.80). Absolute benefit depends on an individual's baseline absolute risk."
+    },
+    {
+      "id": "real-misl-03-celera-human-genome",
+      "category": "misleading_citation",
+      "paper_title": "The Sequence of the Human Genome",
+      "doi": "10.1126/science.1058040",
+      "claim_text": "Celera Genomics conducted randomized clinical trials establishing therapeutic efficacy for candidate genome variants across all human populations [23].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.12,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "A 2.91-billion base pair consensus sequence of the euchromatic portion of the human genome was generated. We estimate the number of protein-coding genes to be 30,000 to 40,000, with sequence variation including 1.4 million single-nucleotide polymorphisms."
+    },
+    {
+      "id": "real-inc-01-quantum-crispr-mismatch",
+      "category": "incorrect_citation",
+      "paper_title": "Quantum teleportation across a 143-km free-space channel",
+      "doi": "10.1038/nature11472",
+      "claim_text": "CRISPR-Cas9 base editors achieved 92% on-target editing efficiency in tripronuclear human zygotes [15].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Quantum teleportation is a key primitive in quantum information. Here we report quantum teleportation of independent qubits over a 143-km free-space link between La Palma and Tenerife, demonstrating its feasibility across optical satellite links."
+    },
+    {
+      "id": "real-inc-02-pulsar-vaccine-mismatch",
+      "category": "incorrect_citation",
+      "paper_title": "Discovery of a 1.6 millisecond pulsar in an 8-day binary system",
+      "doi": "10.1086/172828",
+      "claim_text": "Subunit protein vaccines induced robust neutralizing titers against respiratory pathogens in non-human primates [16].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.12,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "We report the discovery of a millisecond pulsar with a spin period of 1.6 ms in an 8-day circular orbit around an unseen low-mass companion star. Pulse timing observations over 14 months provide precise orbital parameters."
+    },
+    {
+      "id": "real-inc-03-muon-nanoparticle-mismatch",
+      "category": "incorrect_citation",
+      "paper_title": "Precision Measurement of the Muon Magnetic Moment and Mass",
+      "doi": "10.1103/PhysRev.125.1699",
+      "claim_text": "Targeted lipid nanoparticles delivered mRNA selectively to murine CAR T cells with 88% transfection efficiency [24].",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "The anomalous magnetic moment of the positive muon has been measured with high precision using the CERN muon storage ring, confirming quantum electrodynamics predictions to fifth order."
+    },
+    {
+      "id": "real-miss-01-normoxic-apoptosis",
+      "category": "missing_citation",
+      "paper_title": "",
+      "doi": "",
+      "claim_text": "Myocardial apoptosis was attenuated by 42% under sustained normoxic perfusion without supplementary intervention.",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_MISSING_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": null
+    },
+    {
+      "id": "real-miss-02-nosocomial-carbapenem",
+      "category": "missing_citation",
+      "paper_title": "",
+      "doi": "",
+      "claim_text": "Global annual incidence of nosocomial carbapenem-resistant enterobacteriaceae rose by 31.4% across intensive care wards.",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_MISSING_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": null
+    },
+    {
+      "id": "real-miss-03-nos-arterial-expression",
+      "category": "missing_citation",
+      "paper_title": "",
+      "doi": "",
+      "claim_text": "Endothelial nitric oxide synthase expression decreased by 38.5% in pulmonary hypertensive arterial tissue rings.",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_MISSING_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": null
+    },
+    {
+      "id": "real-ret-01-surgisphere-hydroxychloroquine",
+      "category": "retracted_publication",
+      "paper_title": "Hydroxychloroquine or chloroquine with or without a macrolide for treatment of COVID-19: a multinational registry analysis",
+      "doi": "10.1016/S0140-6736(20)31180-6",
+      "claim_text": "Multinational registry analysis revealed that hydroxychloroquine increased in-hospital mortality to 18.0% among hospitalized patients with COVID-19 [17].",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_OUTDATED_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "RETRACTED: Hydroxychloroquine was associated with decreased in-hospital survival and an increased frequency of ventricular arrhythmias. [Retraction published: June 5, 2020 due to inability to audit underlying Surgisphere database records.]"
+    },
+    {
+      "id": "real-ret-02-wakefield-mmr",
+      "category": "retracted_publication",
+      "paper_title": "Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and pervasive developmental disorder in children",
+      "doi": "10.1016/S0140-6736(97)11096-0",
+      "claim_text": "Twelve children demonstrated pervasive developmental delay following measles, mumps, and rubella vaccination [18].",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.6,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_OUTDATED_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "RETRACTED: We investigated a consecutive series of 12 children referred to a pediatric gastroenterology department with a history of normal development followed by loss of acquired skills. [Retraction published: February 2, 2010 following UK General Medical Council findings of research misconduct.]"
+    },
+    {
+      "id": "real-ret-03-stap-cells",
+      "category": "retracted_publication",
+      "paper_title": "Stimulus-triggered fate conversion of somatic cells into pluripotency",
+      "doi": "10.1038/nature13154",
+      "claim_text": "Transient low-pH exposure reprograms mammalian somatic cells into pluripotent stem cells with germline transmission [19].",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_OUTDATED_CITATION"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "RETRACTED: Here we report that mammalian somatic cells can be reprogrammed to pluripotency through transient exposure to low-pH stress without nuclear transfer or genetic manipulation. [Retraction published: July 2, 2014 due to fabricated genomic data and irreproducible cell lines.]"
+    },
+    {
+      "id": "real-num-01-cast-trial-mortality",
+      "category": "numerical_discrepancy",
+      "paper_title": "Preliminary Report: Effect of Encainide and Flecainide on Mortality in a Randomized Trial of Arrhythmia Suppression",
+      "doi": "10.1056/NEJMoa8903837",
+      "claim_text": "The CAST arrhythmia trial recorded 156 deaths (14.5 percent) in the antiarrhythmic arm compared with 72 deaths in the control arm [20].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.25,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "There were 56 deaths among patients assigned to encainide or flecainide (4.5 percent) and 22 deaths among patients assigned to placebo (1.2 percent). The trial was stopped prematurely because of an excess of deaths due to arrhythmia in patients treated with active drug."
+    },
+    {
+      "id": "real-num-02-ukpds-microvascular",
+      "category": "numerical_discrepancy",
+      "paper_title": "Intensive blood-glucose control with sulphonylureas or insulin compared with conventional treatment: UKPDS 33",
+      "doi": "10.1016/S0140-6736(98)07019-6",
+      "claim_text": "Intensive glucose control reduced microvascular complications by 45% (hazard ratio 0.55; p=0.001) in newly diagnosed type 2 diabetes [21].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.1,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Over 10 years, intensive glucose control reduced the risk of microvascular complications by 16% (hazard ratio 0.84; 95% CI 0.72\u20130.97; p=0.02) without significant difference in macrovascular endpoints."
+    },
+    {
+      "id": "real-num-03-sanger-nucleotide-count",
+      "category": "numerical_discrepancy",
+      "paper_title": "DNA sequencing with chain-terminating inhibitors",
+      "doi": "10.1073/pnas.74.12.5463",
+      "claim_text": "Dideoxy chain-termination sequencing allows continuous single-read determination of up to 45,000 nucleotides [22].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "A new method for determining nucleotide sequences in DNA uses 2',3'-dideoxy and arabinonucleoside analogues as chain-terminating inhibitors. Single gel electrophoresis runs permit sequence determination of 15 to 300 nucleotides from a specific priming site."
+    },
+    {
+      "id": "real-num-04-framingham-cholesterol",
+      "category": "numerical_discrepancy",
+      "paper_title": "Coronary heart disease in the Framingham study",
+      "doi": "10.2105/ajph.47.4_pt_2.4",
+      "claim_text": "In the Framingham heart study, men with cholesterol levels above 260 mg/dl experienced a 68.4% incidence of coronary heart disease [26].",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Men with cholesterol levels above 260 mg/dl had more than three times the incidence of coronary heart disease compared with men having levels below 200 mg/dl. The relationship of serum cholesterol to coronary heart disease was graded and continuous."
+    }
+  ]
+}

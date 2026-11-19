@@ -143,18 +143,65 @@ def get_audit_log_endpoint(limit: int = Query(100, ge=1, le=1000)) -> dict[str, 
     }
 
 
-@router.get("/benchmark")
-def get_benchmark_endpoint() -> dict[str, Any]:
-    """Retrieve real gold-standard evaluation benchmark numbers from Member 1's score module."""
-    bench_file = Path("data/benchmark_results.json")
-    if bench_file.exists():
-        with open(bench_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    # Dynamic fallback to evaluate gold_set.jsonl if results JSON not pre-saved
+def _load_or_eval_benchmark(target: str = "synthetic") -> dict[str, Any]:
     from credence.benchmark.score import evaluate_benchmark
-    rep = evaluate_benchmark("gold_set.jsonl")
-    return rep.to_dict()
+    is_real = target in ("real", "real_world", "real_academic")
+    filename = "real_academic_results.json" if is_real else "benchmark_results.json"
+    file_path = Path("data") / filename
+
+    if file_path.exists():
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    # Dynamic fallback evaluation
+    rep = evaluate_benchmark("real" if is_real else "synthetic")
+    rep_dict = rep.to_dict()
+    try:
+        Path("data").mkdir(parents=True, exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(rep_dict, f, indent=2)
+    except Exception:
+        pass
+    return rep_dict
+
+
+@router.get("/benchmark/real")
+def get_benchmark_real_endpoint() -> dict[str, Any]:
+    """Retrieve evaluation numbers on the real-world manually annotated academic dataset."""
+    return _load_or_eval_benchmark("real")
+
+
+@router.get("/benchmark/synthetic")
+def get_benchmark_synthetic_endpoint() -> dict[str, Any]:
+    """Retrieve evaluation numbers on the synthetic corrupted benchmark (gold_set.jsonl)."""
+    return _load_or_eval_benchmark("synthetic")
+
+
+@router.get("/benchmark")
+def get_benchmark_endpoint(
+    dataset: str = Query("all", description="Dataset to retrieve: 'synthetic', 'real', or 'all'"),
+) -> dict[str, Any]:
+    """Retrieve real evaluation benchmark numbers from the score module."""
+    clean_ds = str(dataset).strip().lower()
+    if clean_ds in ("real", "real_world", "real_academic"):
+        return _load_or_eval_benchmark("real")
+    elif clean_ds in ("synthetic", "gold", "gold_set"):
+        return _load_or_eval_benchmark("synthetic")
+
+    synth_dict = _load_or_eval_benchmark("synthetic")
+    real_dict = _load_or_eval_benchmark("real")
+
+    # Combine with top-level backwards-compatibility for existing clients
+    response = dict(synth_dict)
+    response["dataset"] = "all"
+    response["synthetic"] = synth_dict
+    response["real_world"] = real_dict
+    response["synthetic_report"] = synth_dict
+    response["real_report"] = real_dict
+    return response
 
 
 @router.get("/report/{report_id}/export")

@@ -1,60 +1,143 @@
 {
-  "total_samples": 49,
-  "overall_accuracy": 1.0,
-  "macro_precision": 1.0,
-  "macro_recall": 1.0,
-  "macro_f1": 1.0,
-  "ece": 0.0714,
-  "fabricated_quotes_tested": 7,
-  "fabricated_quotes_caught": 7,
+  "total_samples": 100,
+  "overall_accuracy": 0.97,
+  "macro_precision": 0.9631,
+  "macro_recall": 0.96,
+  "macro_f1": 0.9599,
+  "ece": 0.0402,
+  "fabricated_quotes_tested": 10,
+  "fabricated_quotes_caught": 10,
   "hallucination_catch_rate": 1.0,
+  "dataset_name": "Synthetic Corrupted Benchmark (gold_set.jsonl)",
+  "dataset_type": "synthetic",
+  "confusion_matrix": {
+    "supported": {
+      "supported": 14,
+      "partially supported": 1,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "partially supported": {
+      "supported": 0,
+      "partially supported": 15,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "contradictory": {
+      "supported": 1,
+      "partially supported": 1,
+      "contradictory": 13,
+      "unsupported": 0,
+      "needs review": 0
+    },
+    "unsupported": {
+      "supported": 0,
+      "partially supported": 0,
+      "contradictory": 0,
+      "unsupported": 30,
+      "needs review": 0
+    },
+    "needs review": {
+      "supported": 0,
+      "partially supported": 0,
+      "contradictory": 0,
+      "unsupported": 0,
+      "needs review": 25
+    }
+  },
+  "category_breakdown": {
+    "fabricated_quote": {
+      "category": "fabricated_quote",
+      "total": 10,
+      "correct": 10,
+      "accuracy": 1.0
+    },
+    "fake_doi": {
+      "category": "fake_doi",
+      "total": 15,
+      "correct": 15,
+      "accuracy": 1.0
+    },
+    "negation": {
+      "category": "negation",
+      "total": 15,
+      "correct": 13,
+      "accuracy": 0.8667
+    },
+    "none": {
+      "category": "none",
+      "total": 15,
+      "correct": 14,
+      "accuracy": 0.9333
+    },
+    "number_swap": {
+      "category": "number_swap",
+      "total": 15,
+      "correct": 15,
+      "accuracy": 1.0
+    },
+    "scope_widen": {
+      "category": "scope_widen",
+      "total": 15,
+      "correct": 15,
+      "accuracy": 1.0
+    },
+    "unrelated_citation": {
+      "category": "unrelated_citation",
+      "total": 15,
+      "correct": 15,
+      "accuracy": 1.0
+    }
+  },
   "per_verdict": {
     "supported": {
       "verdict": "supported",
-      "tp": 7,
-      "fp": 0,
-      "fn": 0,
-      "support": 7,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "tp": 14,
+      "fp": 1,
+      "fn": 1,
+      "support": 15,
+      "precision": 0.9333,
+      "recall": 0.9333,
+      "f1": 0.9333
     },
     "partially supported": {
       "verdict": "partially supported",
-      "tp": 7,
-      "fp": 0,
+      "tp": 15,
+      "fp": 2,
       "fn": 0,
-      "support": 7,
-      "precision": 1.0,
+      "support": 15,
+      "precision": 0.8824,
       "recall": 1.0,
-      "f1": 1.0
+      "f1": 0.9375
     },
     "contradictory": {
       "verdict": "contradictory",
-      "tp": 7,
+      "tp": 13,
       "fp": 0,
-      "fn": 0,
-      "support": 7,
+      "fn": 2,
+      "support": 15,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "recall": 0.8667,
+      "f1": 0.9286
     },
     "unsupported": {
       "verdict": "unsupported",
-      "tp": 14,
+      "tp": 30,
       "fp": 0,
       "fn": 0,
-      "support": 14,
+      "support": 30,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0
     },
     "needs review": {
       "verdict": "needs review",
-      "tp": 14,
+      "tp": 25,
       "fp": 0,
       "fn": 0,
-      "support": 14,
+      "support": 25,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0
@@ -65,51 +148,1753 @@
       "bin_name": "0.0 - 0.2",
       "lower": 0.0,
       "upper": 0.2,
-      "count": 33,
-      "mean_confidence": 0.05,
+      "count": 66,
+      "mean_confidence": 0.0389,
       "accuracy": 1.0,
-      "support_rate": 0.0,
-      "gap": 0.05
+      "support_rate": 0.0152,
+      "gap": 0.0238
     },
     {
       "bin_name": "0.2 - 0.4",
       "lower": 0.2,
       "upper": 0.4,
-      "count": 2,
-      "mean_confidence": 0.275,
+      "count": 4,
+      "mean_confidence": 0.2875,
       "accuracy": 1.0,
       "support_rate": 0.0,
-      "gap": 0.275
+      "gap": 0.2875
     },
     {
       "bin_name": "0.4 - 0.6",
       "lower": 0.4,
       "upper": 0.6,
-      "count": 7,
-      "mean_confidence": 0.4429,
+      "count": 12,
+      "mean_confidence": 0.4625,
       "accuracy": 1.0,
       "support_rate": 0.5,
-      "gap": 0.0571
+      "gap": 0.0375
     },
     {
       "bin_name": "0.6 - 0.8",
       "lower": 0.6,
       "upper": 0.8,
-      "count": 1,
-      "mean_confidence": 0.7,
-      "accuracy": 1.0,
-      "support_rate": 1.0,
-      "gap": 0.3
+      "count": 4,
+      "mean_confidence": 0.7375,
+      "accuracy": 0.5,
+      "support_rate": 0.625,
+      "gap": 0.1125
     },
     {
       "bin_name": "0.8 - 1.0",
       "lower": 0.8,
       "upper": 1.01,
-      "count": 6,
+      "count": 14,
       "mean_confidence": 0.9,
-      "accuracy": 1.0,
-      "support_rate": 1.0,
-      "gap": 0.1
+      "accuracy": 0.9286,
+      "support_rate": 0.9286,
+      "gap": 0.0286
+    }
+  ],
+  "detailed_records": [
+    {
+      "id": "base-med-compound-x-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa12345",
+      "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [1]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a double-blind, randomized controlled trial involving 1,450 patients, patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality compared with the placebo arm (p = 0.003). Adverse events were similar across both groups."
+    },
+    {
+      "id": "base-edu-learnfast-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1145/3065386",
+      "claim_text": "LearnFast software increased student test scores [4]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.7,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Background: Educational software interventions were evaluated. In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%."
+    },
+    {
+      "id": "base-ai-transformers-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.48550/arXiv.1706.03762",
+      "claim_text": "The Transformer model achieved a score of 28.4 BLEU on the WMT 2014 English-to-German translation task [5]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models, including ensembles, by more than 2.0 BLEU. The model was trained on 8 P100 GPUs."
+    },
+    {
+      "id": "base-oncol-pembro-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone [2]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer, the addition of pembrolizumab to standard chemotherapy resulted in significantly longer overall survival. The median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; p < 0.001)."
+    },
+    {
+      "id": "base-phys-qdots-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% at room temperature [7]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without the need for post-synthetic surface shell growth."
+    },
+    {
+      "id": "base-neuro-amyloid-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2212948",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 41.2% at 18 months [3]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In this 18-month multicenter phase 3 trial in early Alzheimer's disease, intravenous lecanemab reduced brain amyloid burden on PET imaging by 41.2% relative to placebo (difference: -59.1 centiloids, p < 0.001). Infusion-related reactions occurred in 26.4% of participants."
+    },
+    {
+      "id": "base-crispr-cas9-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1073/pnas.1512503112",
+      "claim_text": "Cas9 ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells [6]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Electroporation of recombinant Cas9 ribonucleoproteins into stimulated primary human T cells achieved targeted gene disruption frequencies of up to 68.4% at the CXCR4 locus. Off-target cleavage was below 0.5% across predicted genomic homologous sites."
+    },
+    {
+      "id": "base-vax-mrna-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2035389",
+      "claim_text": "The mRNA-1273 vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [8]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "The trial enrolled 30,420 volunteers who were randomly assigned in a 1:1 ratio. Symptomatic illness occurred in 185 participants in the placebo group and in 11 participants in the mRNA-1273 group."
+    },
+    {
+      "id": "base-energy-perovskite-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1126/science.abd4016",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 29.8% [9]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Monolithic perovskite/silicon tandem architectures enable low-cost, high-efficiency photovoltaics. Here we report a certified power conversion efficiency of 29.8% for a tandem device, enabled by self-assembled methyl-substituted carbazole hole-selective monolayers."
+    },
+    {
+      "id": "base-cardio-dash-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1056/NEJM199704173361601",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 5.5 mmHg compared with the control diet [10]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In 459 adults with systolic blood pressure of less than 160 mm Hg, the combination DASH diet reduced systolic blood pressure by 5.5 mmHg (p < 0.001) and diastolic blood pressure by 3.0 mmHg (p < 0.001) more than the control diet."
+    },
+    {
+      "id": "base-supercond-lah-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1038/s41586-019-1201-8",
+      "claim_text": "Lanthanum hydride exhibited superconductivity at a critical temperature of 250 K under 170 GPa pressure [11]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "We synthesized lanthanum hydride (LaH10) in diamond anvil cells and observed electrical resistance dropping sharply to zero at a critical temperature of 250 K at 170 GPa. The upper critical magnetic field was estimated to exceed 120 tesla at low temperatures."
+    },
+    {
+      "id": "base-astro-proxima-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1051/0004-6361/202037998",
+      "claim_text": "Doppler measurements detected a planet orbiting Proxima Centauri with a minimum mass of 1.17 Earth masses [12]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "High-precision radial velocity observations from ESPRESSO confirmed the presence of Proxima b. The planet has an orbital period of 11.2 days and a minimum mass of 1.17 Earth masses (\u00b1 0.19 Earth masses), orbiting within the habitable zone of the red dwarf host star."
+    },
+    {
+      "id": "base-econ-microcredit-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1257/app.20130533",
+      "claim_text": "Microcredit expansion showed no significant effect on average business profits across 104 urban slums [13]",
+      "expected": "supported",
+      "predicted": "partially supported",
+      "confidence": 0.75,
+      "correct": false,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "We report on a randomized evaluation of microcredit in Hyderabad, India. While borrowing increased, we find no significant effect of access to microfinance on average business profits, average monthly consumption, or female empowerment measures."
+    },
+    {
+      "id": "base-psych-replication-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1177/1745691616652873",
+      "claim_text": "A multi-lab replication of the ego depletion effect observed an effect size of d = 0.04 across 23 laboratories [14]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a registered replication report encompassing 23 laboratories and 2,141 participants, the observed meta-analytic effect size for ego depletion was d = 0.04 (95% CI: -0.07 to 0.15). The result was statistically indistinguishable from zero across all testing sites."
+    },
+    {
+      "id": "base-climate-icecore-clean",
+      "category": "none",
+      "paper_title": "",
+      "doi": "10.1038/nature06949",
+      "claim_text": "Antarctic ice core data demonstrated atmospheric carbon dioxide levels remained between 180 and 280 ppm over the past 800,000 years [15]",
+      "expected": "supported",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "none",
+      "hallucination_caught": false,
+      "evidence_quotation": "Analysis of air bubbles trapped in the EPICA Dome C Antarctic ice core reveals that atmospheric CO2 concentrations fluctuated strictly within 180 to 280 ppm throughout the past 800,000 years, establishing that modern CO2 concentrations exceed pre-industrial baselines."
+    },
+    {
+      "id": "base-med-compound-x-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa12345",
+      "claim_text": "Patients receiving Compound-X demonstrated a 30.0% reduction in 30-day mortality [1]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Background: We evaluated Compound-X in acute coronary syndromes. In a double-blind, randomized controlled trial involving 1,450 patients, patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality compared with the placebo arm (p = 0.003)."
+    },
+    {
+      "id": "base-edu-learnfast-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1145/3065386",
+      "claim_text": "LearnFast software increased student test scores [11.2]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.55,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Background: Educational software interventions were evaluated. In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%."
+    },
+    {
+      "id": "base-ai-transformers-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.48550/arXiv.1706.03762",
+      "claim_text": "The Transformer model achieved a score of 48.4 BLEU on the WMT 2014 English-to-German translation task [5]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models, including ensembles, by more than 2.0 BLEU. The model was trained on 8 P100 GPUs."
+    },
+    {
+      "id": "base-oncol-pembro-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 24.6 months compared with 4.2 months for chemotherapy alone [2]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer, the addition of pembrolizumab to standard chemotherapy resulted in significantly longer overall survival. The median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; p < 0.001)."
+    },
+    {
+      "id": "base-phys-qdots-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 30.8% at room temperature [7]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.55,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without the need for post-synthetic surface shell growth."
+    },
+    {
+      "id": "base-neuro-amyloid-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2212948",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 61.2% at 18 months [3]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "In this 18-month multicenter phase 3 trial in early Alzheimer's disease, intravenous lecanemab reduced brain amyloid burden on PET imaging by 41.2% relative to placebo (difference: -59.1 centiloids, p < 0.001). Infusion-related reactions occurred in 26.4% of participants."
+    },
+    {
+      "id": "base-crispr-cas9-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1073/pnas.1512503112",
+      "claim_text": "Cas25.2ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells [6]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Electroporation of recombinant Cas9 ribonucleoproteins into stimulated primary human T cells achieved targeted gene disruption frequencies of up to 68.4% at the CXCR4 locus. Off-target cleavage was below 0.5% across predicted genomic homologous sites."
+    },
+    {
+      "id": "base-vax-mrna-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2035389",
+      "claim_text": "The mRNA-424.3vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [8]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.1,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Symptomatic illness occurred in 185 participants in the placebo group and in 11 participants in the mRNA-1273 group. Vaccine efficacy was 94.1% (95% CI: 89.3 to 96.8%; p < 0.001)."
+    },
+    {
+      "id": "base-energy-perovskite-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1126/science.abd4016",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 49.8% [9]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.55,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Monolithic perovskite/silicon tandem architectures enable low-cost, high-efficiency photovoltaics. Here we report a certified power conversion efficiency of 29.8% for a tandem device, enabled by self-assembled methyl-substituted carbazole hole-selective monolayers."
+    },
+    {
+      "id": "base-cardio-dash-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1056/NEJM199704173361601",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 15.4 mmHg compared with the control diet [10]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.55,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "In 459 adults with systolic blood pressure of less than 160 mm Hg, the combination DASH diet reduced systolic blood pressure by 5.5 mmHg (p < 0.001) and diastolic blood pressure by 3.0 mmHg (p < 0.001) more than the control diet."
+    },
+    {
+      "id": "base-supercond-lah-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1038/s41586-019-1201-8",
+      "claim_text": "Lanthanum hydride exhibited superconductivity at a critical temperature of 83.3 K under 170 GPa pressure [11]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "We synthesized lanthanum hydride (LaH10) in diamond anvil cells and observed electrical resistance dropping sharply to zero at a critical temperature of 250 K at 170 GPa. The upper critical magnetic field was estimated to exceed 120 tesla at low temperatures."
+    },
+    {
+      "id": "base-astro-proxima-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1051/0004-6361/202037998",
+      "claim_text": "Doppler measurements detected a planet orbiting Proxima Centauri with a minimum mass of 3.3Earth masses [12]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.55,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "High-precision radial velocity observations from ESPRESSO confirmed the presence of Proxima b. The planet has an orbital period of 11.2 days and a minimum mass of 1.17 Earth masses (\u00b1 0.19 Earth masses), orbiting within the habitable zone of the red dwarf host star."
+    },
+    {
+      "id": "base-econ-microcredit-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1257/app.20130533",
+      "claim_text": "Microcredit expansion showed no significant effect on average business profits across 34.7urban slums [13]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.75,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "We report on a randomized evaluation of microcredit in Hyderabad, India. While borrowing increased, we find no significant effect of access to microfinance on average business profits, average monthly consumption, or female empowerment measures."
+    },
+    {
+      "id": "base-psych-replication-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1177/1745691616652873",
+      "claim_text": "A multi-lab replication of the ego depletion effect observed an effect size of d = 0.1across 23 laboratories [14]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.4,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a registered replication report encompassing 23 laboratories and 2,141 participants, the observed meta-analytic effect size for ego depletion was d = 0.04 (95% CI: -0.07 to 0.15). The result was statistically indistinguishable from zero across all testing sites."
+    },
+    {
+      "id": "base-climate-icecore-numswap",
+      "category": "number_swap",
+      "paper_title": "",
+      "doi": "10.1038/nature06949",
+      "claim_text": "Antarctic ice core data demonstrated atmospheric carbon dioxide levels remained between 60.0and 280 ppm over the past 800,000 years [15]",
+      "expected": "partially supported",
+      "predicted": "partially supported",
+      "confidence": 0.1,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "number_swap",
+      "hallucination_caught": false,
+      "evidence_quotation": "Analysis of air bubbles trapped in the EPICA Dome C Antarctic ice core reveals that atmospheric CO2 concentrations fluctuated strictly within 180 to 280 ppm throughout the past 800,000 years, establishing that modern CO2 concentrations exceed pre-industrial baselines."
+    },
+    {
+      "id": "base-med-compound-x-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa12345",
+      "claim_text": "Patients receiving Compound-X failed to demonstrate any 12.1% reduction in 30-day mortality [1]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a double-blind, randomized controlled trial involving 1,450 patients, patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality compared with the placebo arm (p = 0.003). Adverse events were similar across both groups."
+    },
+    {
+      "id": "base-edu-learnfast-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1145/3065386",
+      "claim_text": "LearnFast software failed to increase student test scores [4]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Background: Educational software interventions were evaluated. In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%."
+    },
+    {
+      "id": "base-ai-transformers-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.48550/arXiv.1706.03762",
+      "claim_text": "The Transformer model failed to achieve a score of 28.4 BLEU on the WMT 2014 English-to-German translation task [5]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models, including ensembles, by more than 2.0 BLEU. The model was trained on 8 P100 GPUs."
+    },
+    {
+      "id": "base-oncol-pembro-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy failed to improve median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone [2]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer, the addition of pembrolizumab to standard chemotherapy resulted in significantly longer overall survival. The median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; p < 0.001)."
+    },
+    {
+      "id": "base-phys-qdots-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal perovskite quantum dots failed to achieve a photoluminescence quantum yield of 92.5% at room temperature [7]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without the need for post-synthetic surface shell growth."
+    },
+    {
+      "id": "base-neuro-amyloid-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2212948",
+      "claim_text": "Lecanemab therapy increased brain amyloid plaque burden by 41.2% at 18 months [3]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "In this 18-month multicenter phase 3 trial in early Alzheimer's disease, intravenous lecanemab reduced brain amyloid burden on PET imaging by 41.2% relative to placebo (difference: -59.1 centiloids, p < 0.001). Infusion-related reactions occurred in 26.4% of participants."
+    },
+    {
+      "id": "base-crispr-cas9-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1073/pnas.1512503112",
+      "claim_text": "Cas9 ribonucleoprotein delivery failed to achieve 68.4% targeted gene disruption in primary T cells [6]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Electroporation of recombinant Cas9 ribonucleoproteins into stimulated primary human T cells achieved targeted gene disruption frequencies of up to 68.4% at the CXCR4 locus. Off-target cleavage was below 0.5% across predicted genomic homologous sites."
+    },
+    {
+      "id": "base-vax-mrna-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2035389",
+      "claim_text": "The mRNA-1273 vaccine failed to demonstrate 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [8]",
+      "expected": "contradictory",
+      "predicted": "supported",
+      "confidence": 0.9,
+      "correct": false,
+      "rules_triggered": [
+        "RULE_ALL_MATCH"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The trial enrolled 30,420 volunteers who were randomly assigned in a 1:1 ratio. Symptomatic illness occurred in 185 participants in the placebo group and in 11 participants in the mRNA-1273 group."
+    },
+    {
+      "id": "base-energy-perovskite-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1126/science.abd4016",
+      "claim_text": "Perovskite-silicon tandem solar cells failed to reach a certified power conversion efficiency of 29.8% [9]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Monolithic perovskite/silicon tandem architectures enable low-cost, high-efficiency photovoltaics. Here we report a certified power conversion efficiency of 29.8% for a tandem device, enabled by self-assembled methyl-substituted carbazole hole-selective monolayers."
+    },
+    {
+      "id": "base-cardio-dash-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1056/NEJM199704173361601",
+      "claim_text": "The DASH diet increased systolic blood pressure by 5.5 mmHg compared with the control diet [10]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "In 459 adults with systolic blood pressure of less than 160 mm Hg, the combination DASH diet reduced systolic blood pressure by 5.5 mmHg (p < 0.001) and diastolic blood pressure by 3.0 mmHg (p < 0.001) more than the control diet."
+    },
+    {
+      "id": "base-supercond-lah-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1038/s41586-019-1201-8",
+      "claim_text": "Lanthanum hydride failed to exhibit superconductivity at a critical temperature of 250 K under 170 GPa pressure [11]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "We synthesized lanthanum hydride (LaH10) in diamond anvil cells and observed electrical resistance dropping sharply to zero at a critical temperature of 250 K at 170 GPa. The upper critical magnetic field was estimated to exceed 120 tesla at low temperatures."
+    },
+    {
+      "id": "base-astro-proxima-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1051/0004-6361/202037998",
+      "claim_text": "Doppler measurements failed to detect a planet orbiting Proxima Centauri with a minimum mass of 1.17 Earth masses [12]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "High-precision radial velocity observations from ESPRESSO confirmed the presence of Proxima b. The planet has an orbital period of 11.2 days and a minimum mass of 1.17 Earth masses (\u00b1 0.19 Earth masses), orbiting within the habitable zone of the red dwarf host star."
+    },
+    {
+      "id": "base-econ-microcredit-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1257/app.20130533",
+      "claim_text": "Microcredit expansion demonstrated dramatic positive effects on average business profits across 104 urban slums [13]",
+      "expected": "contradictory",
+      "predicted": "partially supported",
+      "confidence": 0.75,
+      "correct": false,
+      "rules_triggered": [
+        "RULE_PARTIAL_MATCH"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "We report on a randomized evaluation of microcredit in Hyderabad, India. While borrowing increased, we find no significant effect of access to microfinance on average business profits, average monthly consumption, or female empowerment measures."
+    },
+    {
+      "id": "base-psych-replication-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1177/1745691616652873",
+      "claim_text": "Contrary to hypothesis, a multi-lab replication of the ego depletion effect observed an effect size of d = 0.04 across 23 laboratories [14] showed no effect",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a registered replication report encompassing 23 laboratories and 2,141 participants, the observed meta-analytic effect size for ego depletion was d = 0.04 (95% CI: -0.07 to 0.15). The result was statistically indistinguishable from zero across all testing sites."
+    },
+    {
+      "id": "base-climate-icecore-negation",
+      "category": "negation",
+      "paper_title": "",
+      "doi": "10.1038/nature06949",
+      "claim_text": "Antarctic ice core data failed to demonstrate atmospheric carbon dioxide levels remained between 180 and 280 ppm over the past 800,000 years [15]",
+      "expected": "contradictory",
+      "predicted": "contradictory",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_CONTRADICTORY"
+      ],
+      "corruption_type": "negation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Analysis of air bubbles trapped in the EPICA Dome C Antarctic ice core reveals that atmospheric CO2 concentrations fluctuated strictly within 180 to 280 ppm throughout the past 800,000 years, establishing that modern CO2 concentrations exceed pre-industrial baselines."
+    },
+    {
+      "id": "base-med-compound-x-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa12345",
+      "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality definitively across all human patient populations [1]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a double-blind, randomized controlled trial involving 1,450 patients, patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality compared with the placebo arm (p = 0.003). Adverse events were similar across both groups."
+    },
+    {
+      "id": "base-edu-learnfast-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1145/3065386",
+      "claim_text": "LearnFast software increased student test scores definitively across all human patient populations [4]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.08,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "Background: Educational software interventions were evaluated. In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%."
+    },
+    {
+      "id": "base-ai-transformers-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.48550/arXiv.1706.03762",
+      "claim_text": "The Transformer model achieved a score of 28.4 BLEU on the WMT 2014 English-to-German translation task definitively across all human patient populations [5]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models, including ensembles, by more than 2.0 BLEU. The model was trained on 8 P100 GPUs."
+    },
+    {
+      "id": "base-oncol-pembro-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone definitively across all human patient populations [2]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer, the addition of pembrolizumab to standard chemotherapy resulted in significantly longer overall survival. The median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; p < 0.001)."
+    },
+    {
+      "id": "base-phys-qdots-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% at room temperature definitively across all human patient populations [7]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without the need for post-synthetic surface shell growth."
+    },
+    {
+      "id": "base-neuro-amyloid-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2212948",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 41.2% at 18 months definitively across all human patient populations [3]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "In this 18-month multicenter phase 3 trial in early Alzheimer's disease, intravenous lecanemab reduced brain amyloid burden on PET imaging by 41.2% relative to placebo (difference: -59.1 centiloids, p < 0.001). Infusion-related reactions occurred in 26.4% of participants."
+    },
+    {
+      "id": "base-crispr-cas9-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1073/pnas.1512503112",
+      "claim_text": "Cas9 ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells definitively across all human patient populations [6]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "Electroporation of recombinant Cas9 ribonucleoproteins into stimulated primary human T cells achieved targeted gene disruption frequencies of up to 68.4% at the CXCR4 locus. Off-target cleavage was below 0.5% across predicted genomic homologous sites."
+    },
+    {
+      "id": "base-vax-mrna-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2035389",
+      "claim_text": "The mRNA-1273 vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants definitively across all human patient populations [8]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "The trial enrolled 30,420 volunteers who were randomly assigned in a 1:1 ratio. Symptomatic illness occurred in 185 participants in the placebo group and in 11 participants in the mRNA-1273 group."
+    },
+    {
+      "id": "base-energy-perovskite-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1126/science.abd4016",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 29.8% definitively across all human patient populations [9]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "Monolithic perovskite/silicon tandem architectures enable low-cost, high-efficiency photovoltaics. Here we report a certified power conversion efficiency of 29.8% for a tandem device, enabled by self-assembled methyl-substituted carbazole hole-selective monolayers."
+    },
+    {
+      "id": "base-cardio-dash-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1056/NEJM199704173361601",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 5.5 mmHg compared with the control diet definitively across all human patient populations [10]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "In 459 adults with systolic blood pressure of less than 160 mm Hg, the combination DASH diet reduced systolic blood pressure by 5.5 mmHg (p < 0.001) and diastolic blood pressure by 3.0 mmHg (p < 0.001) more than the control diet."
+    },
+    {
+      "id": "base-supercond-lah-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1038/s41586-019-1201-8",
+      "claim_text": "Lanthanum hydride exhibited superconductivity at a critical temperature of 250 K under 170 GPa pressure definitively across all human patient populations [11]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "We synthesized lanthanum hydride (LaH10) in diamond anvil cells and observed electrical resistance dropping sharply to zero at a critical temperature of 250 K at 170 GPa. The upper critical magnetic field was estimated to exceed 120 tesla at low temperatures."
+    },
+    {
+      "id": "base-astro-proxima-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1051/0004-6361/202037998",
+      "claim_text": "Doppler measurements detected a planet orbiting Proxima Centauri with a minimum mass of 1.17 Earth masses definitively across all human patient populations [12]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "High-precision radial velocity observations from ESPRESSO confirmed the presence of Proxima b. The planet has an orbital period of 11.2 days and a minimum mass of 1.17 Earth masses (\u00b1 0.19 Earth masses), orbiting within the habitable zone of the red dwarf host star."
+    },
+    {
+      "id": "base-econ-microcredit-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1257/app.20130533",
+      "claim_text": "Microcredit expansion showed no significant effect on average business profits across 104 urban slums definitively across all human patient populations [13]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "We report on a randomized evaluation of microcredit in Hyderabad, India. While borrowing increased, we find no significant effect of access to microfinance on average business profits, average monthly consumption, or female empowerment measures."
+    },
+    {
+      "id": "base-psych-replication-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1177/1745691616652873",
+      "claim_text": "A multi-lab replication of the ego depletion effect observed an effect size of d = 0.04 across 23 laboratories definitively across all human patient populations [14]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "In a registered replication report encompassing 23 laboratories and 2,141 participants, the observed meta-analytic effect size for ego depletion was d = 0.04 (95% CI: -0.07 to 0.15). The result was statistically indistinguishable from zero across all testing sites."
+    },
+    {
+      "id": "base-climate-icecore-scopewiden",
+      "category": "scope_widen",
+      "paper_title": "",
+      "doi": "10.1038/nature06949",
+      "claim_text": "Antarctic ice core data demonstrated atmospheric carbon dioxide levels remained between 180 and 280 ppm over the past 800,000 years definitively across all human patient populations [15]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "scope_widen",
+      "hallucination_caught": false,
+      "evidence_quotation": "Analysis of air bubbles trapped in the EPICA Dome C Antarctic ice core reveals that atmospheric CO2 concentrations fluctuated strictly within 180 to 280 ppm throughout the past 800,000 years, establishing that modern CO2 concentrations exceed pre-industrial baselines."
+    },
+    {
+      "id": "base-med-compound-x-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1103/PhysRevLett.116.061102",
+      "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [99]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On September 14, 2015 at 09:50:45 UTC the two detectors of the Laser Interferometer Gravitational-Wave Observatory observed a transient gravitational-wave signal from a binary black hole merger with initial black hole masses of 36 and 29 solar masses."
+    },
+    {
+      "id": "base-edu-learnfast-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1038/nature01404",
+      "claim_text": "LearnFast software increased student test scores [98]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.12,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains roughly 3 billion base pairs of DNA. We report the sequence and comparative analysis of the euchromatic portion, revealing approximately 20,000 to 25,000 protein-coding genes."
+    },
+    {
+      "id": "base-ai-transformers-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1145/3318464.3389700",
+      "claim_text": "The Transformer model achieved a score of 28.4 BLEU on the WMT 2014 English-to-German translation task [97]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Spanner is Google's scalable, multi-version, globally-distributed, and synchronously-replicated database. It allocates globally-meaningful commit timestamps using TrueTime APIs."
+    },
+    {
+      "id": "base-oncol-pembro-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1103/PhysRevLett.116.061102",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone [99]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On September 14, 2015 at 09:50:45 UTC the two detectors of the Laser Interferometer Gravitational-Wave Observatory observed a transient gravitational-wave signal from a binary black hole merger with initial black hole masses of 36 and 29 solar masses."
+    },
+    {
+      "id": "base-phys-qdots-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1038/nature01404",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% at room temperature [98]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.05,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains roughly 3 billion base pairs of DNA. We report the sequence and comparative analysis of the euchromatic portion, revealing approximately 20,000 to 25,000 protein-coding genes."
+    },
+    {
+      "id": "base-neuro-amyloid-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1145/3318464.3389700",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 41.2% at 18 months [97]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.06,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Spanner is Google's scalable, multi-version, globally-distributed, and synchronously-replicated database. It allocates globally-meaningful commit timestamps using TrueTime APIs."
+    },
+    {
+      "id": "base-crispr-cas9-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1103/PhysRevLett.116.061102",
+      "claim_text": "Cas9 ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells [99]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On September 14, 2015 at 09:50:45 UTC the two detectors of the Laser Interferometer Gravitational-Wave Observatory observed a transient gravitational-wave signal from a binary black hole merger with initial black hole masses of 36 and 29 solar masses."
+    },
+    {
+      "id": "base-vax-mrna-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1038/nature01404",
+      "claim_text": "The mRNA-1273 vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [98]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains roughly 3 billion base pairs of DNA. We report the sequence and comparative analysis of the euchromatic portion, revealing approximately 20,000 to 25,000 protein-coding genes."
+    },
+    {
+      "id": "base-energy-perovskite-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1145/3318464.3389700",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 29.8% [97]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Spanner is Google's scalable, multi-version, globally-distributed, and synchronously-replicated database. It allocates globally-meaningful commit timestamps using TrueTime APIs."
+    },
+    {
+      "id": "base-cardio-dash-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1103/PhysRevLett.116.061102",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 5.5 mmHg compared with the control diet [99]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.05,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On September 14, 2015 at 09:50:45 UTC the two detectors of the Laser Interferometer Gravitational-Wave Observatory observed a transient gravitational-wave signal from a binary black hole merger with initial black hole masses of 36 and 29 solar masses."
+    },
+    {
+      "id": "base-supercond-lah-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1038/nature01404",
+      "claim_text": "Lanthanum hydride exhibited superconductivity at a critical temperature of 250 K under 170 GPa pressure [98]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains roughly 3 billion base pairs of DNA. We report the sequence and comparative analysis of the euchromatic portion, revealing approximately 20,000 to 25,000 protein-coding genes."
+    },
+    {
+      "id": "base-astro-proxima-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1145/3318464.3389700",
+      "claim_text": "Doppler measurements detected a planet orbiting Proxima Centauri with a minimum mass of 1.17 Earth masses [97]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.09,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Spanner is Google's scalable, multi-version, globally-distributed, and synchronously-replicated database. It allocates globally-meaningful commit timestamps using TrueTime APIs."
+    },
+    {
+      "id": "base-econ-microcredit-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1103/PhysRevLett.116.061102",
+      "claim_text": "Microcredit expansion showed no significant effect on average business profits across 104 urban slums [99]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.05,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "On September 14, 2015 at 09:50:45 UTC the two detectors of the Laser Interferometer Gravitational-Wave Observatory observed a transient gravitational-wave signal from a binary black hole merger with initial black hole masses of 36 and 29 solar masses."
+    },
+    {
+      "id": "base-psych-replication-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1038/nature01404",
+      "claim_text": "A multi-lab replication of the ego depletion effect observed an effect size of d = 0.04 across 23 laboratories [98]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.02,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "The human genome contains roughly 3 billion base pairs of DNA. We report the sequence and comparative analysis of the euchromatic portion, revealing approximately 20,000 to 25,000 protein-coding genes."
+    },
+    {
+      "id": "base-climate-icecore-unrelated",
+      "category": "unrelated_citation",
+      "paper_title": "",
+      "doi": "10.1145/3318464.3389700",
+      "claim_text": "Antarctic ice core data demonstrated atmospheric carbon dioxide levels remained between 180 and 280 ppm over the past 800,000 years [97]",
+      "expected": "unsupported",
+      "predicted": "unsupported",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_ALL_ABSENT"
+      ],
+      "corruption_type": "unrelated_citation",
+      "hallucination_caught": false,
+      "evidence_quotation": "Spanner is Google's scalable, multi-version, globally-distributed, and synchronously-replicated database. It allocates globally-meaningful commit timestamps using TrueTime APIs."
+    },
+    {
+      "id": "base-med-compound-x-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0001",
+      "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [1]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-edu-learnfast-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0002",
+      "claim_text": "LearnFast software increased student test scores [4]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-ai-transformers-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0003",
+      "claim_text": "The Transformer model achieved a score of 28.4 BLEU on the WMT 2014 English-to-German translation task [5]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-oncol-pembro-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0004",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone [2]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-phys-qdots-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0005",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% at room temperature [7]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-neuro-amyloid-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0006",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 41.2% at 18 months [3]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-crispr-cas9-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0007",
+      "claim_text": "Cas9 ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells [6]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-vax-mrna-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0008",
+      "claim_text": "The mRNA-1273 vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [8]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-energy-perovskite-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0009",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 29.8% [9]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-cardio-dash-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0010",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 5.5 mmHg compared with the control diet [10]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-supercond-lah-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0011",
+      "claim_text": "Lanthanum hydride exhibited superconductivity at a critical temperature of 250 K under 170 GPa pressure [11]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-astro-proxima-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0012",
+      "claim_text": "Doppler measurements detected a planet orbiting Proxima Centauri with a minimum mass of 1.17 Earth masses [12]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-econ-microcredit-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0013",
+      "claim_text": "Microcredit expansion showed no significant effect on average business profits across 104 urban slums [13]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-psych-replication-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0014",
+      "claim_text": "A multi-lab replication of the ego depletion effect observed an effect size of d = 0.04 across 23 laboratories [14]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-climate-icecore-fakedoi",
+      "category": "fake_doi",
+      "paper_title": "",
+      "doi": "10.9999/fake.doi.credence.benchmark.0015",
+      "claim_text": "Antarctic ice core data demonstrated atmospheric carbon dioxide levels remained between 180 and 280 ppm over the past 800,000 years [15]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_INACCESSIBLE_SOURCE"
+      ],
+      "corruption_type": "fake_doi",
+      "hallucination_caught": false,
+      "evidence_quotation": "Cited Publication. ."
+    },
+    {
+      "id": "base-med-compound-x-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa12345",
+      "claim_text": "Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [1]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.15,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "In a double-blind, randomized controlled trial involving 1,450 patients, patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality compared with the placebo arm (p = 0.003). Adverse events were similar across both groups."
+    },
+    {
+      "id": "base-edu-learnfast-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1145/3065386",
+      "claim_text": "LearnFast software increased student test scores [4]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.25,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "Background: Educational software interventions were evaluated. In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%."
+    },
+    {
+      "id": "base-ai-transformers-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.48550/arXiv.1706.03762",
+      "claim_text": "The Transformer model achieved a score of 28.4 BLEU on the WMT 2014 English-to-German translation task [5]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.15,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "On the WMT 2014 English-to-German translation task, the big transformer model achieves a state-of-the-art BLEU score of 28.4, outperforming the best previously reported models, including ensembles, by more than 2.0 BLEU. The model was trained on 8 P100 GPUs."
+    },
+    {
+      "id": "base-oncol-pembro-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa1801005",
+      "claim_text": "Pembrolizumab combined with chemotherapy improved median progression-free survival to 8.8 months compared with 4.2 months for chemotherapy alone [2]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.15,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "In patients with metastatic non-small-cell lung cancer, the addition of pembrolizumab to standard chemotherapy resulted in significantly longer overall survival. The median progression-free survival was 8.8 months in the pembrolizumab-combination group versus 4.2 months in the placebo-combination group (hazard ratio for disease progression, 0.52; p < 0.001)."
+    },
+    {
+      "id": "base-phys-qdots-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1021/acs.nanolett.5b02554",
+      "claim_text": "Colloidal perovskite quantum dots achieved a photoluminescence quantum yield of 92.5% at room temperature [7]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.3,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "Colloidal cesium lead halide perovskite nanocrystals exhibit bright photoluminescence. We synthesize monodisperse nanocrystals demonstrating photoluminescence quantum yields reaching 92.5% at room temperature without the need for post-synthetic surface shell growth."
+    },
+    {
+      "id": "base-neuro-amyloid-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2212948",
+      "claim_text": "Lecanemab therapy reduced brain amyloid plaque burden by 41.2% at 18 months [3]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.15,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "In this 18-month multicenter phase 3 trial in early Alzheimer's disease, intravenous lecanemab reduced brain amyloid burden on PET imaging by 41.2% relative to placebo (difference: -59.1 centiloids, p < 0.001). Infusion-related reactions occurred in 26.4% of participants."
+    },
+    {
+      "id": "base-crispr-cas9-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1073/pnas.1512503112",
+      "claim_text": "Cas9 ribonucleoprotein delivery achieved 68.4% targeted gene disruption in primary T cells [6]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.15,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "Electroporation of recombinant Cas9 ribonucleoproteins into stimulated primary human T cells achieved targeted gene disruption frequencies of up to 68.4% at the CXCR4 locus. Off-target cleavage was below 0.5% across predicted genomic homologous sites."
+    },
+    {
+      "id": "base-vax-mrna-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1056/NEJMoa2035389",
+      "claim_text": "The mRNA-1273 vaccine demonstrated 94.1% efficacy against symptomatic illness in a trial of 30,420 participants [8]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.0,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "The trial enrolled 30,420 volunteers who were randomly assigned in a 1:1 ratio. Symptomatic illness occurred in 185 participants in the placebo group and in 11 participants in the mRNA-1273 group."
+    },
+    {
+      "id": "base-energy-perovskite-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1126/science.abd4016",
+      "claim_text": "Perovskite-silicon tandem solar cells reached a certified power conversion efficiency of 29.8% [9]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.3,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "Monolithic perovskite/silicon tandem architectures enable low-cost, high-efficiency photovoltaics. Here we report a certified power conversion efficiency of 29.8% for a tandem device, enabled by self-assembled methyl-substituted carbazole hole-selective monolayers."
+    },
+    {
+      "id": "base-cardio-dash-fabquote",
+      "category": "fabricated_quote",
+      "paper_title": "",
+      "doi": "10.1056/NEJM199704173361601",
+      "claim_text": "The DASH diet reduced systolic blood pressure by 5.5 mmHg compared with the control diet [10]",
+      "expected": "needs review",
+      "predicted": "needs review",
+      "confidence": 0.3,
+      "correct": true,
+      "rules_triggered": [
+        "RULE_HALLUCINATED_QUOTE"
+      ],
+      "corruption_type": "fabricated_quote",
+      "hallucination_caught": true,
+      "evidence_quotation": "In 459 adults with systolic blood pressure of less than 160 mm Hg, the combination DASH diet reduced systolic blood pressure by 5.5 mmHg (p < 0.001) and diastolic blood pressure by 3.0 mmHg (p < 0.001) more than the control diet."
     }
   ]
 }
