@@ -1,0 +1,115 @@
+{
+  "total_samples": 100,
+  "overall_accuracy": 0.95,
+  "macro_precision": 0.9344,
+  "macro_recall": 0.9333,
+  "macro_f1": 0.9323,
+  "ece": 0.187,
+  "fabricated_quotes_tested": 10,
+  "fabricated_quotes_caught": 10,
+  "hallucination_catch_rate": 1.0,
+  "per_verdict": {
+    "supported": {
+      "verdict": "supported",
+      "tp": 13,
+      "fp": 2,
+      "fn": 2,
+      "support": 15,
+      "precision": 0.8667,
+      "recall": 0.8667,
+      "f1": 0.8667
+    },
+    "partially supported": {
+      "verdict": "partially supported",
+      "tp": 15,
+      "fp": 2,
+      "fn": 0,
+      "support": 15,
+      "precision": 0.8824,
+      "recall": 1.0,
+      "f1": 0.9375
+    },
+    "contradictory": {
+      "verdict": "contradictory",
+      "tp": 12,
+      "fp": 1,
+      "fn": 3,
+      "support": 15,
+      "precision": 0.9231,
+      "recall": 0.8,
+      "f1": 0.8571
+    },
+    "unsupported": {
+      "verdict": "unsupported",
+      "tp": 30,
+      "fp": 0,
+      "fn": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "needs review": {
+      "verdict": "needs review",
+      "tp": 25,
+      "fp": 0,
+      "fn": 0,
+      "support": 25,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "calibration_bins": [
+    {
+      "bin_name": "0.0 - 0.2",
+      "lower": 0.0,
+      "upper": 0.2,
+      "count": 31,
+      "mean_confidence": 0.0435,
+      "accuracy": 1.0,
+      "support_rate": 0.0323,
+      "gap": 0.0113
+    },
+    {
+      "bin_name": "0.2 - 0.4",
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 16,
+      "mean_confidence": 0.2906,
+      "accuracy": 1.0,
+      "support_rate": 0.0,
+      "gap": 0.2906
+    },
+    {
+      "bin_name": "0.4 - 0.6",
+      "lower": 0.4,
+      "upper": 0.6,
+      "count": 21,
+      "mean_confidence": 0.4548,
+      "accuracy": 1.0,
+      "support_rate": 0.2857,
+      "gap": 0.169
+    },
+    {
+      "bin_name": "0.6 - 0.8",
+      "lower": 0.6,
+      "upper": 0.8,
+      "count": 16,
+      "mean_confidence": 0.7031,
+      "accuracy": 0.875,
+      "support_rate": 0.1562,
+      "gap": 0.5469
+    },
+    {
+      "bin_name": "0.8 - 1.0",
+      "lower": 0.8,
+      "upper": 1.01,
+      "count": 16,
+      "mean_confidence": 0.9,
+      "accuracy": 0.8125,
+      "support_rate": 0.8125,
+      "gap": 0.0875
+    }
+  ]
+}
