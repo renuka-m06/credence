@@ -8,7 +8,11 @@ export default defineConfig({
     proxy: {
       '/verify': 'http://localhost:8000',
       '/report': 'http://localhost:8000',
+      '/claims': 'http://localhost:8000',
       '/demo': 'http://localhost:8000',
+      '/audit': 'http://localhost:8000',
+      '/benchmark': 'http://localhost:8000',
+      '/auth': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
     },
   },

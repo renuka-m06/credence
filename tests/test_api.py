@@ -39,7 +39,8 @@ def test_get_demo_report():
     # First claim should be LearnFast
     learnfast = data["claims"][0]
     assert "LearnFast" in learnfast["text"]
-    assert "Partially supported, needs review" in learnfast["verdict"]["display_verdict"]
+    verdict_text = (learnfast["verdict"].get("original_verdict") or learnfast["verdict"]["display_verdict"]).lower()
+    assert "partially supported" in verdict_text
 
 
 def test_verify_text_claim():

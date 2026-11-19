@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import HomeScreen from './components/HomeScreen';
 import ReportScreen from './components/ReportScreen';
 import BenchmarkScreen from './components/BenchmarkScreen';
+import { apiUrl, getAuthHeaders } from './api';
 
 // Fallback demo report for offline testing without server
 const FALLBACK_DEMO_REPORT = {
@@ -154,10 +155,10 @@ export default function App() {
     // Check if there is an active report ID stored in session
     const savedRepId = typeof window !== 'undefined' ? sessionStorage.getItem('credence_active_report_id') : null;
     const reportUrl = savedRepId && savedRepId !== 'demo-report-1' ? `/report/${savedRepId}` : '/demo/report';
-    fetch(reportUrl)
+    fetch(apiUrl(reportUrl), { headers: getAuthHeaders() })
       .then(res => {
         if (!res.ok && savedRepId) {
-          return fetch('/demo/report').then(r => r.json());
+          return fetch(apiUrl('/demo/report'), { headers: getAuthHeaders() }).then(r => r.json());
         }
         return res.json();
       })
@@ -178,7 +179,7 @@ export default function App() {
     setLoading(true);
     setErrorMessage(null);
     setLoadingProgress('Loading worked sample paper (sample_paper.pdf)...');
-    fetch('/demo/report')
+    fetch(apiUrl('/demo/report'), { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(data => {
         setReport(data || FALLBACK_DEMO_REPORT);
@@ -214,8 +215,9 @@ export default function App() {
     formData.append('file', file);
     const verifyUrl = demoMode ? '/verify?demo_mode=true' : '/verify';
 
-    fetch(verifyUrl, {
+    fetch(apiUrl(verifyUrl), {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     })
       .then(async (res) => {
@@ -265,8 +267,9 @@ export default function App() {
     setLoadingProgress('Sending request to verify pipeline...');
 
     // Post to /verify with force_error query to test error state
-    fetch('/verify?force_error=true', {
+    fetch(apiUrl('/verify?force_error=true'), {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: new FormData(),
     })
       .then(async (res) => {
@@ -293,9 +296,12 @@ export default function App() {
   };
 
   const handleReviewClaim = async (reportId, claimId, actionData) => {
-    const res = await fetch(`/claims/${claimId}/review`, {
+    const res = await fetch(apiUrl(`/claims/${claimId}/review`), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
       body: JSON.stringify(actionData),
     });
 
@@ -365,8 +371,8 @@ export default function App() {
     });
 
     // Re-fetch report from backend with SQLite review ledger applied
-    const reportUrl = reportId && reportId !== 'demo-report-1' ? `/report/${reportId}` : '/demo/report';
-    fetch(reportUrl)
+    const reportEndpoint = reportId && reportId !== 'demo-report-1' ? `/report/${reportId}` : '/demo/report';
+    fetch(apiUrl(reportEndpoint), { headers: getAuthHeaders() })
       .then(r => r.json())
       .then(updated => {
         if (updated && updated.claims) {

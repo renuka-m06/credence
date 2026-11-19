@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { apiUrl, getAuthHeaders } from '../api';
 
 // Pre-cached verified numbers from data/real_academic_results.json
 const FALLBACK_REAL_BENCHMARK = {
@@ -111,7 +112,7 @@ export default function BenchmarkScreen() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/benchmark')
+    fetch(apiUrl('/benchmark'), { headers: getAuthHeaders() })
       .then(res => {
         if (!res.ok) throw new Error('Benchmark fetch failed');
         return res.json();

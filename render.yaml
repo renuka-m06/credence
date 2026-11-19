@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: credence
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: CREDENCE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: CREDENCE_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////app/data/credence.db
+      - key: CROSSREF_MAILTO
+        value: researcher@example.com
+      - key: UNPAYWALL_EMAIL
+        value: researcher@example.com
+    disk:
+      name: credence-data
+      mountPath: /app/data
+      sizeGB: 1

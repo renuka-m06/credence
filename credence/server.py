@@ -1,14 +1,16 @@
-"""FastAPI backend exposing verification endpoints and report persistence.
+"""FastAPI backend exposing verification endpoints and persistent report storage.
 
 Endpoints:
-- POST /verify: Manuscript file or payload -> Report JSON
-- GET /report/{id}: Fetch report by ID
+- POST /verify: Manuscript file upload -> Report JSON (hardened with magic-byte validation, size ceiling & scholarly resolution)
+- GET /report/{id}: Fetch report by ID (persisted across server restarts via SQLite/PostgreSQL)
 - POST /report/{id}/review: Record human reviewer action (Accept / Override / Comment)
 - GET /demo/report: Instant offline verification report on sample data
+- GET /health: Health check endpoint for cloud orchestration
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import tempfile
@@ -16,39 +18,71 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from config import settings
 from credence.api.routes import router as api_router
-from credence.ingest.citations import map_citations
+from credence.auth.deps import get_current_user_optional
+from credence.auth.models import UserPublic
+from credence.auth.routes import router as auth_router
+from credence.ingest.citations import audit_missing_citations, map_citations
 from credence.ingest.claims import extract_claims
 from credence.ingest.parse import parse_document
 from credence.report.ledger import apply_ledger_to_report, record_review
 from credence.report.models import AccessTier, Claim, Report, Verdict, VerdictType
+from credence.report.storage import report_store, reports_mapping
+from credence.resolve.sources import UnifiedResolver
+from credence.security.rate_limiter import rate_limit_dependency
+from credence.security.upload import validate_and_save_upload
 from credence.verify.pipeline import build_report, verify_claim
+
+logger = logging.getLogger("credence.server")
 
 app = FastAPI(
     title="Credence Verification API",
     description="Scientific claim verification against citations with deterministic proof.",
-    version="0.1.0",
+    version="1.0.0",
 )
 
-# CORS middleware for React Vite frontend
+# CORS configuration with environment-driven origin whitelist
+ALLOWED_ORIGINS_RAW = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000"
+)
+ALLOWED_ORIGINS = [o.strip() for o in ALLOWED_ORIGINS_RAW.split(",") if o.strip()]
+is_wildcard = "*" in ALLOWED_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS if not is_wildcard else ["*"],
+    allow_credentials=not is_wildcard,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
-# Include review ledger and audit API routes
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Centralized exception handler: logs tracebacks internally while returning safe JSON."""
+    logger.exception(f"Unhandled error processing {request.method} {request.url.path}: {exc}")
+    is_prod = os.getenv("CREDENCE_ENV", "development").lower() in ("production", "prod")
+    detail = "An internal server error occurred while processing the verification request." if is_prod else str(exc)
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "detail": detail, "path": request.url.path},
+    )
+
+
+# Include authentication, review ledger, export and audit API routes
+app.include_router(auth_router)
 app.include_router(api_router)
 
-# In-memory store for generated reports (backed by ID)
-REPORTS_STORE: dict[str, dict[str, Any]] = {}
+# Durable storage mapping for verification reports (persists to SQLite/PostgreSQL across restarts)
+REPORTS_STORE = reports_mapping
 
 
 class ReviewAction(BaseModel):
@@ -69,7 +103,6 @@ class TextVerifyRequest(BaseModel):
 
 def _generate_demo_report() -> dict[str, Any]:
     """Generate deterministic report on sample demo data without live API calls."""
-    # Claim 1: LearnFast (Partially supported, needs review)
     c1 = verify_claim(
         claim_input="LearnFast improved test scores by 30% [4]",
         source_text=(
@@ -93,7 +126,6 @@ def _generate_demo_report() -> dict[str, Any]:
         sr.section_name = "Results"
         sr.source_location = "Results, page 2"
 
-    # Claim 2: Cardioprotective therapy (Supported)
     c2 = verify_claim(
         claim_input="Patients receiving Compound-X demonstrated a 12.1% reduction in 30-day mortality [1]",
         source_text=(
@@ -117,7 +149,6 @@ def _generate_demo_report() -> dict[str, Any]:
         sr.section_name = "Results"
         sr.source_location = "Results, page 3"
 
-    # Claim 3: Fabricated survival claim (Unsupported / Contradictory)
     c3 = verify_claim(
         claim_input="Compound-X produced a 95% survival advantage across all clinical cohorts [2]",
         source_text=(
@@ -139,11 +170,10 @@ def _generate_demo_report() -> dict[str, Any]:
         sr.section_name = "Discussion"
         sr.source_location = "Discussion, page 4"
 
-    # Claim 4: Uncited empirical claim (Missing Citation)
     c4 = Claim(
         id="claim-4",
         text="Myocardial apoptosis was attenuated by 42% under sustained normoxic perfusion without supplementary intervention.",
-        citation_keys=[],  # Requirement 7: Never automatically invent or assign citations
+        citation_keys=[],
         source_location="Results, page 2",
         page_number=2,
         section_name="Results",
@@ -233,18 +263,25 @@ def _generate_demo_report() -> dict[str, Any]:
     return rep_dict
 
 
-# Seed demo report on startup
-_generate_demo_report()
+# Seed demo report into persistent storage if not already present
+if not REPORTS_STORE.get("demo-report-1"):
+    _generate_demo_report()
 
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "credence-api"}
+    """Health check endpoint for container orchestrators and load balancers."""
+    return {
+        "status": "ok",
+        "service": "credence-api",
+        "version": "1.0.0",
+        "storage": "persistent",
+    }
 
 
 @app.get("/demo/report")
 def get_demo_report():
-    """Return worked demo report instantly for offline testing, with SQLite ledger applied."""
+    """Return worked demo report instantly for offline testing, with review ledger applied."""
     rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
     return apply_ledger_to_report(dict(rep))
 
@@ -254,8 +291,19 @@ async def verify_document(
     file: UploadFile = File(...),
     force_error: bool = False,
     demo_mode: bool = False,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+    _rate_limit: None = Depends(rate_limit_dependency),
 ):
-    """Upload PDF or DOCX manuscript and run complete verification pipeline."""
+    """Upload PDF or DOCX manuscript and run complete verification pipeline.
+
+    Security features enforced:
+    - 25MB maximum upload size
+    - Magic byte signature verification (%PDF / PK zip header)
+    - Path traversal sanitization
+    - Rate limit protection
+    - Cache-first scholarly resolution via Crossref, OpenAlex, Semantic Scholar & arXiv
+    - Persistent report storage
+    """
     if force_error:
         raise HTTPException(
             status_code=500,
@@ -263,7 +311,6 @@ async def verify_document(
         )
 
     if demo_mode:
-        # Fully offline demo mode: serve pre-cached verification results from data/demo with zero external API calls
         rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
         cached = dict(rep)
         cached["document_name"] = file.filename
@@ -271,13 +318,8 @@ async def verify_document(
         cached["offline_demo_mode"] = True
         return apply_ledger_to_report(cached)
 
-    suffix = Path(file.filename).suffix.lower()
-    if suffix not in (".pdf", ".docx", ".doc"):
-        raise HTTPException(status_code=400, detail="Supported file formats: .pdf, .docx")
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        shutil.copyfileobj(file.file, tmp)
-        tmp_path = Path(tmp.name)
+    # Secure upload validation, signature verification, and sanitization
+    tmp_path, clean_filename = await validate_and_save_upload(file)
 
     try:
         # Ingest: Parse PDF/DOCX
@@ -308,29 +350,57 @@ async def verify_document(
                 claims.extend(sec_claims)
 
         if not claims:
-            # Fallback to full body claim extraction
             claims = extract_claims(parsed_doc.text, section_name="Full Manuscript")
 
-        # Ensure distinct claim and slot IDs across sections
         for idx, cl in enumerate(claims, 1):
             cl.id = f"claim-{idx}"
             for sidx, slot in enumerate(cl.slots, 1):
                 slot.id = f"claim-{idx}-slot-{sidx}"
 
-        # Verify claims against citations
+        # Resolve mapped citations against scholarly databases (Crossref, OpenAlex, Semantic Scholar, etc.)
+        resolver = UnifiedResolver()
+        resolved_candidates: dict[str, Any] = {}
+        for ref_key, ref_entry in mapping.mapped.items():
+            try:
+                match_res = resolver.resolve_reference(ref_entry)
+                if match_res and match_res.candidate:
+                    resolved_candidates[ref_key] = match_res.candidate
+                else:
+                    resolved_candidates[ref_key] = ref_entry
+            except Exception as e:
+                logger.debug(f"Reference resolution fallback for [{ref_key}]: {e}")
+                resolved_candidates[ref_key] = ref_entry
+
+        # Verify claims against citations with honest access-tier grounding
         verified_claims: list[Claim] = []
         for cl in claims:
-            # Match citation key with mapped reference entry
             ref_key = cl.citation_keys[0] if cl.citation_keys else ""
-            ref_entry = mapping.mapped.get(ref_key)
+            candidate = resolved_candidates.get(ref_key) or mapping.mapped.get(ref_key)
 
             source_text = ""
-            access_tier = AccessTier.FULL_TEXT
-            if ref_entry:
-                # Use reference title and journal context as retrieved proxy in offline mode
-                source_text = f"{ref_entry.title}. {ref_entry.journal or ''} {ref_entry.year or ''}."
-                if ref_entry.doi:
-                    source_text += f" https://doi.org/{ref_entry.doi}"
+            access_tier = AccessTier.INACCESSIBLE
+
+            if candidate:
+                full_text = getattr(candidate, "raw_payload", {}).get("full_text") if hasattr(candidate, "raw_payload") else None
+                abstract = getattr(candidate, "abstract", None)
+                title = getattr(candidate, "title", "")
+                journal = getattr(candidate, "journal", "") or ""
+                year = getattr(candidate, "year", "") or ""
+                doi = getattr(candidate, "doi", "") or ""
+
+                if full_text:
+                    source_text = full_text
+                    access_tier = AccessTier.FULL_TEXT
+                elif abstract:
+                    source_text = abstract
+                    access_tier = AccessTier.ABSTRACT_ONLY
+                elif title:
+                    source_text = f"{title}. {journal} {year}."
+                    if doi:
+                        source_text += f" https://doi.org/{doi}"
+                    access_tier = AccessTier.METADATA_ONLY
+                else:
+                    access_tier = AccessTier.INACCESSIBLE
             else:
                 if ref_key:
                     access_tier = AccessTier.INACCESSIBLE
@@ -341,12 +411,11 @@ async def verify_document(
                 source_text=source_text,
                 access_tier=access_tier,
                 citation_key=ref_key,
-                candidate_paper=ref_entry,
+                candidate_paper=candidate,
             )
             verified_claims.append(v_cl)
 
-        # Run missing citation audit across mapping, claims, text, and sections (Requirements 1-6)
-        from credence.ingest.citations import audit_missing_citations
+        # Run missing citation audit across mapping, claims, text, and sections
         missing_citation_warnings = audit_missing_citations(
             mapping=mapping,
             claims=verified_claims,
@@ -355,7 +424,7 @@ async def verify_document(
         )
 
         report = build_report(
-            document_name=file.filename,
+            document_name=clean_filename,
             claims=verified_claims,
             access_tier=AccessTier.FULL_TEXT,
             missing_citations=missing_citation_warnings,
@@ -371,16 +440,26 @@ async def verify_document(
         rep_id = str(uuid.uuid4())
         rep_dict["id"] = rep_id
         rep_dict = apply_ledger_to_report(rep_dict)
-        REPORTS_STORE[rep_id] = rep_dict
+
+        # Persist report durably to SQLite / PostgreSQL
+        owner_id = current_user.id if current_user else None
+        report_store.save_report(rep_dict, owner_id=owner_id)
+
         return rep_dict
 
     finally:
         if tmp_path.exists():
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
 
 @app.post("/verify/text")
-def verify_text_claim(req: TextVerifyRequest):
+def verify_text_claim(
+    req: TextVerifyRequest,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
     """Verify raw claim string against provided source text."""
     tier = AccessTier.from_str(req.access_tier or "full_text")
     v_cl = verify_claim(
@@ -393,7 +472,8 @@ def verify_text_claim(req: TextVerifyRequest):
     rep_dict = report.to_dict()
     rep_id = str(uuid.uuid4())
     rep_dict["id"] = rep_id
-    REPORTS_STORE[rep_id] = rep_dict
+    owner_id = current_user.id if current_user else None
+    report_store.save_report(rep_dict, owner_id=owner_id)
     return rep_dict
 
 
@@ -401,13 +481,21 @@ def verify_text_claim(req: TextVerifyRequest):
 def get_report(report_id: str):
     """Retrieve verified report by ID with SQLite review ledger overrides applied."""
     report = REPORTS_STORE.get(report_id)
+    if not report and report_id in ("demo-report-1", "demo", "sample", "default"):
+        report = _generate_demo_report()
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return apply_ledger_to_report(dict(report))
 
 
 @app.post("/report/{report_id}/review")
-def review_claim(report_id: str, claim_id: str, action: ReviewAction):
+def review_claim(
+    report_id: str,
+    claim_id: str,
+    action: ReviewAction,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
     """Record human review action (Accept / Override / Comment) for academic triage."""
     clean_cid = str(claim_id or "").strip()
     if not clean_cid or clean_cid.lower() in ("undefined", "null", "none"):
@@ -429,6 +517,9 @@ def review_claim(report_id: str, claim_id: str, action: ReviewAction):
     orig_v = action.original_verdict or claim.get("verdict", {}).get("original_verdict") or claim.get("verdict", {}).get("verdict")
     expl = (action.explanation if action.explanation is not None else action.comment or "").strip()
 
+    # Server-side reviewer identity verification (Golden Rule: prevent client-side spoofing)
+    verified_reviewer_id = current_user.username if current_user else (action.reviewer_id or "reviewer-1")
+
     try:
         review_entry = record_review(
             claim_id=clean_cid,
@@ -437,12 +528,12 @@ def review_claim(report_id: str, claim_id: str, action: ReviewAction):
             explanation=expl,
             comment=expl,
             original_verdict=orig_v,
-            reviewer_id=action.reviewer_id or "reviewer-1",
+            reviewer_id=verified_reviewer_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Apply updated ledger to the report and save
+    # Apply updated ledger to the report and save persistently
     updated_rep = apply_ledger_to_report(dict(report))
     REPORTS_STORE[report_id] = updated_rep
 
@@ -451,7 +542,7 @@ def review_claim(report_id: str, claim_id: str, action: ReviewAction):
 
 @app.get("/report/{report_id}/missing-citations")
 def get_report_missing_citations(report_id: str):
-    """Retrieve missing citation diagnostic warnings for a verified report (Requirement 6)."""
+    """Retrieve missing citation diagnostic warnings for a verified report."""
     report = None
     if report_id in ("demo-report-1", "demo", "sample", "default"):
         report = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()

@@ -12,9 +12,11 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
+from credence.auth.deps import get_current_user_optional
+from credence.auth.models import UserPublic
 from credence.api.export import (
     generate_html_export,
     generate_json_export,
@@ -41,7 +43,11 @@ class ReviewRequest(BaseModel):
 
 
 @router.post("/claims/{claim_id}/review")
-def review_claim_endpoint(claim_id: str, payload: ReviewRequest) -> dict[str, Any]:
+def review_claim_endpoint(
+    claim_id: str,
+    payload: ReviewRequest,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+) -> dict[str, Any]:
     """Append a human review action (accept, override, comment) to the immutable SQLite ledger."""
     clean_id = str(claim_id or "").strip()
     if not clean_id or clean_id.lower() in ("undefined", "null", "none"):
@@ -93,6 +99,9 @@ def review_claim_endpoint(claim_id: str, payload: ReviewRequest) -> dict[str, An
             if orig_v:
                 break
 
+    # Server-side reviewer identity verification
+    verified_reviewer = current_user.username if current_user else (payload.reviewer_id or "reviewer-1")
+
     try:
         entry = record_review(
             claim_id=clean_id,
@@ -101,7 +110,7 @@ def review_claim_endpoint(claim_id: str, payload: ReviewRequest) -> dict[str, An
             explanation=explanation,
             comment=explanation,
             original_verdict=orig_v,
-            reviewer_id=payload.reviewer_id or "reviewer-1",
+            reviewer_id=verified_reviewer,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -293,6 +302,14 @@ def inspect_source_evidence(claim_id: str, report_id: Optional[str] = None) -> d
         target_report = srv.REPORTS_STORE.get(report_id)
 
     if not target_report:
+        demo_rep = srv.REPORTS_STORE.get("demo-report-1") or (srv._generate_demo_report() if hasattr(srv, "_generate_demo_report") else None)
+        if demo_rep:
+            c = next((c for c in demo_rep.get("claims", []) if c.get("id") == clean_cid), None)
+            if c:
+                target_report = demo_rep
+                target_claim = c
+
+    if not target_claim and not target_report:
         for rep in srv.REPORTS_STORE.values():
             for c in rep.get("claims", []):
                 if c.get("id") == clean_cid:

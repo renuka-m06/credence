@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: credence:latest
+    container_name: credence-web
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - CREDENCE_ENV=production
+      - CREDENCE_SECRET_KEY=${CREDENCE_SECRET_KEY:-change_this_secret_in_production_key_4819402}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/credence.db}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENALEX_API_KEY=${OPENALEX_API_KEY:-}
+      - SEMANTIC_SCHOLAR_API_KEY=${SEMANTIC_SCHOLAR_API_KEY:-}
+      - CROSSREF_MAILTO=${CROSSREF_MAILTO:-researcher@example.com}
+      - UNPAYWALL_EMAIL=${UNPAYWALL_EMAIL:-researcher@example.com}
+      - MAX_UPLOAD_SIZE_BYTES=26214400
+      - RATE_LIMIT_PER_MINUTE=60
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Optional production PostgreSQL service
+  postgres:
+    image: postgres:16-alpine
+    container_name: credence-postgres
+    restart: unless-stopped
+    profiles:
+      - with-postgres
+    environment:
+      - POSTGRES_DB=credence
+      - POSTGRES_USER=credence
+      - POSTGRES_PASSWORD=credence_secure_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U credence -d credence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

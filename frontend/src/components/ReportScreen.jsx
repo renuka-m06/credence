@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { apiUrl, getAuthHeaders } from '../api';
 
 export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) {
   const [selectedClaimId, setSelectedClaimId] = useState(
@@ -58,7 +59,9 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
     setLoadingSourceEvidence(true);
     const repId = report?.id || 'demo-report-1';
     try {
-      const res = await fetch(`/report/${repId}/claims/${claim.id}/source`);
+      const res = await fetch(apiUrl(`/report/${repId}/claims/${claim.id}/source`), {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const data = await res.json();
         setSourceEvidenceData(data);
@@ -79,8 +82,8 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
       return;
     }
     const reportId = report?.id || 'demo-report-1';
-    const exportUrl = `/report/${reportId}/export?format=${fmt}`;
-    fetch(exportUrl)
+    const exportUrl = apiUrl(`/report/${reportId}/export?format=${fmt}`);
+    fetch(exportUrl, { headers: getAuthHeaders() })
       .then(res => {
         if (!res.ok) throw new Error('API export unavailable');
         return res.blob();
@@ -227,7 +230,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
 
   const fetchGlobalAudit = () => {
     setLoadingGlobalAudit(true);
-    fetch('/audit?limit=30')
+    fetch(apiUrl('/audit?limit=30'), { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(data => {
         setGlobalAudit(data?.audit_log || data?.reviews || []);
