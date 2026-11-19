@@ -13,22 +13,28 @@ export default function ReportScreen({
     report?.claims?.[0]?.id || ''
   );
 
-  // Automatically synchronize selected claim when active report changes
-  useEffect(() => {
-    if (report?.claims && report.claims.length > 0) {
-      setSelectedClaimId(report.claims[0].id);
-    } else {
-      setSelectedClaimId('');
-    }
-    setReviewNote('');
-    setDiagFilter('all');
-    setFilter('Needs review');
-  }, [report?.id]);
-  // Default filter MUST be "Needs review" according to AGENTS.md Golden Rule 6
-  const [filter, setFilter] = useState('Needs review');
+  // Left sidebar search query
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Technical Deep-Dive view below Claim Verification: 'proof' | 'diagnostics' | 'audit'
-  const [technicalTab, setTechnicalTab] = useState('proof');
+  // Primary 3-tab filter: 'flagged' | 'all' | 'verified' | 'custom'
+  // Default filter MUST be "flagged" (Needs review / human triage) according to AGENTS.md Golden Rule 6
+  const [primaryFilter, setPrimaryFilter] = useState('flagged');
+
+  // Fine-grained category dropdown filter
+  const [categoryDropdown, setCategoryDropdown] = useState('all');
+
+  // Unified single-level deep-dive tabs below Claim Card: 'proof' | 'redteam' | 'diagnostics'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab');
+      if (t && ['proof', 'redteam', 'diagnostics'].includes(t)) return t;
+    }
+    return 'proof';
+  });
+
+  // Collapsible Slot Verification Table state
+  const [isSlotsCollapsed, setIsSlotsCollapsed] = useState(false);
 
   // Reviewer triage modals & states
   const [showOverrideModal, setShowOverrideModal] = useState(false);
@@ -48,6 +54,29 @@ export default function ReportScreen({
 
   // Diagnostic warning category filter
   const [diagFilter, setDiagFilter] = useState('all');
+
+  // Synchronize when active report changes
+  useEffect(() => {
+    if (report?.claims && report.claims.length > 0) {
+      setSelectedClaimId(report.claims[0].id);
+    } else {
+      setSelectedClaimId('');
+    }
+    setReviewNote('');
+    setDiagFilter('all');
+    setPrimaryFilter('flagged');
+    setCategoryDropdown('all');
+    setSearchQuery('');
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get('tab');
+      if (t && ['proof', 'redteam', 'diagnostics'].includes(t)) {
+        setActiveTab(t);
+        return;
+      }
+    }
+    setActiveTab('proof');
+  }, [report?.id]);
 
   const buildLocalSourceData = (claim) => {
     if (!claim) return null;
@@ -214,7 +243,7 @@ export default function ReportScreen({
     return list;
   }, [report]);
 
-  // Count claims for each filter tab dynamically
+  // Dynamic filter counters
   const countForFilter = (tab) => {
     if (tab === 'All') return claims.length;
     if (tab === 'Missing citations') {
@@ -234,22 +263,70 @@ export default function ReportScreen({
     }).length;
   };
 
-  // Filter claims based on selected filter
-  const filteredClaims = claims.filter(c => {
-    if (filter === 'All') return true;
-    if (filter === 'Missing citations') {
-      return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
-    }
-    const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
-    const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
-    const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
-    if (filter === 'Needs review') return isReview || isInaccessible;
-    if (filter === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
-    if (filter === 'Partial') return vStr.includes('partially') || vStr.includes('partial');
-    if (filter === 'Contradictory') return vStr.includes('contradictory');
-    if (filter === 'Unsupported') return vStr.includes('unsupported');
-    return true;
-  });
+  const countFlagged = useMemo(() => {
+    return claims.filter(c => {
+      const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+      const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
+      const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+      const isContradict = vStr.includes('contradict');
+      const isUnsupport = vStr.includes('unsupport');
+      const isMissing = c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
+      return isReview || isInaccessible || isContradict || isUnsupport || isMissing;
+    }).length;
+  }, [claims]);
+
+  const countVerified = useMemo(() => {
+    return claims.filter(c => {
+      const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+      const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
+      const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+      return vStr.includes('support') && !isReview && !isInaccessible;
+    }).length;
+  }, [claims]);
+
+  // Filter claims based on primaryFilter, categoryDropdown, and searchQuery
+  const filteredClaims = useMemo(() => {
+    return claims.filter(c => {
+      // 1. Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesText = c.text?.toLowerCase().includes(q);
+        const matchesId = c.id?.toLowerCase().includes(q);
+        const matchesLoc = c.source_location?.toLowerCase().includes(q);
+        if (!matchesText && !matchesId && !matchesLoc) return false;
+      }
+
+      // 2. Specific Category dropdown filter
+      if (categoryDropdown !== 'all') {
+        const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+        const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
+        const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+        if (categoryDropdown === 'needs_review') return isReview || isInaccessible;
+        if (categoryDropdown === 'supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
+        if (categoryDropdown === 'partial') return vStr.includes('partially') || vStr.includes('partial');
+        if (categoryDropdown === 'contradictory') return vStr.includes('contradictory');
+        if (categoryDropdown === 'unsupported') return vStr.includes('unsupported');
+        if (categoryDropdown === 'missing_citations') return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
+      }
+
+      // 3. Primary 3-tab filter: 'flagged' | 'all' | 'verified'
+      if (primaryFilter === 'all') return true;
+      const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+      const isReview = vStr.includes('review') || vStr.includes('outdated') || c.verdict?.needs_review;
+      const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+      const isContradict = vStr.includes('contradict');
+      const isUnsupport = vStr.includes('unsupport');
+      const isMissing = c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
+
+      if (primaryFilter === 'flagged') {
+        return isReview || isInaccessible || isContradict || isUnsupport || isMissing;
+      }
+      if (primaryFilter === 'verified') {
+        return vStr.includes('support') && !isReview && !isInaccessible;
+      }
+      return true;
+    });
+  }, [claims, primaryFilter, categoryDropdown, searchQuery]);
 
   const selectedClaim = filteredClaims.find(c => c.id === selectedClaimId) || filteredClaims[0] || claims[0] || null;
 
@@ -325,7 +402,7 @@ export default function ReportScreen({
     return 'verdict-needs-review';
   };
 
-  // Find verified quote from slot results for the focal point
+  // Find verified quote from slot results
   const verifiedSlotResult = selectedClaim?.slot_results?.find(r => r.quote && r.quote_verified) 
     || selectedClaim?.slot_results?.[0]
     || { quote: "In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%.", quote_verified: true, quote_span: [63, 164] };
@@ -345,23 +422,20 @@ export default function ReportScreen({
   }, [allMissingWarnings, diagFilter]);
 
   return (
-    <div style={{ padding: '24px 0 80px' }}>
-      <div className="container">
-
-        {/* ====================================================================
-            1. SLIM HORIZONTAL MANUSCRIPT OVERVIEW CARD
-            ==================================================================== */}
-        <div className="dossier-header-card" style={{
-          padding: '12px 20px',
-          marginBottom: '20px',
-          borderRadius: '10px',
+    <div>
+      {/* ====================================================================
+          1. STICKY CONTEXT BAR (Consolidated Dossier Sub-Header below main Navbar)
+          ==================================================================== */}
+      <div className="sticky-context-bar">
+        <div className="container" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '14px'
+          gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Left: Document Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: '10px',
               fontWeight: '700',
@@ -376,7 +450,7 @@ export default function ReportScreen({
               DOSSIER
             </span>
             <span style={{
-              fontSize: '17px',
+              fontSize: '16px',
               fontFamily: 'var(--font-serif)',
               fontWeight: '700',
               color: 'var(--text-primary)',
@@ -384,7 +458,7 @@ export default function ReportScreen({
               {report.document_name}
             </span>
             <span style={{
-              fontSize: '10.5px',
+              fontSize: '10px',
               fontWeight: '600',
               textTransform: 'uppercase',
               background: 'var(--bg-surface-elevated)',
@@ -395,14 +469,17 @@ export default function ReportScreen({
             }}>
               {report.access_tier || 'Full Text'}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-tertiary)' }}>
               • {claims.length} Empirical Claims
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+          {/* Right: Confidence & Export Action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>OVERALL CONFIDENCE</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                OVERALL CONFIDENCE
+              </span>
               <div style={{ width: '85px', height: '5px', background: 'var(--bg-surface-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
                 <div style={{
                   width: `${(report.overall_confidence || 0) * 100}%`,
@@ -431,91 +508,96 @@ export default function ReportScreen({
           </div>
         </div>
 
-        {/* Export Modal Dialog */}
+        {/* Dropdown Export Options Panel */}
         {showExportModal && (
-          <div className="panel" style={{
-            background: 'var(--bg-surface-elevated)',
-            border: '1px solid var(--accent-orange-border)',
-            borderRadius: '10px',
-            padding: '18px 22px',
-            marginBottom: '20px',
-            boxShadow: 'var(--shadow-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '14.5px', color: 'var(--text-primary)', fontWeight: '700', margin: 0 }}>
-                  Export Verification Dossier
-                </h3>
-                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                  Download evidence-backed, human-reviewable reports in standardized academic formats.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowExportModal(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '16px' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: '10px'
+          <div className="container" style={{ marginTop: '10px' }}>
+            <div className="panel" style={{
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--accent-orange-border)',
+              borderRadius: '10px',
+              padding: '16px 20px',
+              boxShadow: 'var(--shadow-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
             }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleExportDownload('html')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
-              >
-                <span style={{ fontSize: '16px' }}>📄</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Annotated HTML</div>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Interactive web dossier</div>
+                  <h3 style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '700', margin: 0 }}>
+                    Export Verification Dossier
+                  </h3>
+                  <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                    Download evidence-backed, human-reviewable reports in standardized academic formats.
+                  </p>
                 </div>
-              </button>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '16px' }}
+                >
+                  ✕
+                </button>
+              </div>
 
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleExportDownload('markdown')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
-              >
-                <span style={{ fontSize: '16px' }}>📝</span>
-                <div>
-                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Academic Markdown</div>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Clean markdown tables</div>
-                </div>
-              </button>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '10px'
+              }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleExportDownload('html')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                >
+                  <span style={{ fontSize: '16px' }}>📄</span>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Annotated HTML</div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Interactive web dossier</div>
+                  </div>
+                </button>
 
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleExportDownload('json')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
-              >
-                <span style={{ fontSize: '16px' }}>📦</span>
-                <div>
-                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Machine Ledger</div>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Full JSON ledger</div>
-                </div>
-              </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleExportDownload('markdown')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                >
+                  <span style={{ fontSize: '16px' }}>📝</span>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Academic Markdown</div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Clean markdown tables</div>
+                  </div>
+                </button>
 
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => handleExportDownload('print')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
-              >
-                <span style={{ fontSize: '16px' }}>🖨️</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '12px' }}>Print / Save PDF</div>
-                  <div style={{ fontSize: '10.5px', opacity: 0.9 }}>Direct browser print</div>
-                </div>
-              </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleExportDownload('json')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                >
+                  <span style={{ fontSize: '16px' }}>📦</span>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '12px' }}>Machine Ledger</div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Full JSON ledger</div>
+                  </div>
+                </button>
+
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleExportDownload('print')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                >
+                  <span style={{ fontSize: '16px' }}>🖨️</span>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '12px' }}>Print / Save PDF</div>
+                    <div style={{ fontSize: '10.5px', opacity: 0.9 }}>Direct browser print</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Main Workspace Layout Container */}
+      <div className="container" style={{ paddingBottom: '80px' }}>
 
         {/* Source Inspection Modal Dialog */}
         {showSourceModal && (
@@ -724,214 +806,332 @@ export default function ReportScreen({
         )}
 
         {/* ====================================================================
-            2. CREDENCE RED TEAM – THE MAIN VISUAL ATTRACTION (FULL WIDTH)
+            2. UNIFIED WORKSPACE (26% Left Sidebar / 74% Right Main Workspace)
             ==================================================================== */}
-        <div style={{ marginBottom: '24px' }}>
-          <RedTeamPanel
-            claim={selectedClaim}
-            reportId={report?.id}
-            demoMode={demoMode}
-            theme={theme}
-          />
-        </div>
-
-        {/* ====================================================================
-            3. CLAIM VERIFICATION: SIMPLE TWO-COLUMN LAYOUT BELOW RED TEAM
-            ==================================================================== */}
-        {/* Filter bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '4px' }}>
-            FILTER CLAIMS:
-          </span>
-          {['Needs review', 'All', 'Supported', 'Partial', 'Contradictory', 'Unsupported', 'Missing citations'].map(tab => {
-            const active = filter === tab;
-            const count = countForFilter(tab);
-            return (
-              <button
-                key={tab}
-                onClick={() => {
-                  setFilter(tab);
-                  if (tab === 'Missing citations') {
-                    setTechnicalTab('diagnostics');
-                  }
-                  const matching = claims.filter(c => {
-                    if (tab === 'All') return true;
-                    if (tab === 'Missing citations') return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
-                    const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
-                    const isReview = vStr.includes('review') || c.verdict?.needs_review;
-                    const isInacc = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
-                    if (tab === 'Needs review') return isReview || isInacc;
-                    if (tab === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
-                    if (tab === 'Partial') return vStr.includes('partially') || vStr.includes('partial');
-                    if (tab === 'Contradictory') return vStr.includes('contradictory');
-                    if (tab === 'Unsupported') return vStr.includes('unsupported');
-                    return true;
-                  });
-                  if (matching.length > 0 && !matching.some(m => m.id === selectedClaimId)) {
-                    setSelectedClaimId(matching[0].id);
-                  }
-                }}
-                className={`filter-pill-item ${active ? 'active' : ''}`}
-                style={{ fontSize: '11.5px', padding: '5px 12px' }}
-              >
-                <span>{tab}</span>
-                <span style={{
-                  fontSize: '10px',
-                  fontWeight: '700',
-                  padding: '1px 5px',
-                  borderRadius: '8px',
-                  background: active ? 'var(--accent-orange)' : 'var(--bg-surface-elevated)',
-                  color: active ? '#ffffff' : 'var(--text-tertiary)'
-                }}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Two-Column Workbench */}
         <div className="workbench-grid">
 
-          {/* LEFT COLUMN: SCANNABLE CLAIM LIST */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {filteredClaims.length === 0 ? (
-              <div className="panel" style={{ padding: '20px 16px', textAlign: 'center' }}>
-                <p style={{ marginBottom: '4px', color: 'var(--text-primary)', fontWeight: '600', fontSize: '13px' }}>
-                  No Claims Under "{filter}"
-                </p>
-                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.4 }}>
-                  No assertions match this verdict filter.
-                </p>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setFilter('Needs review')}
-                  style={{ fontSize: '11px', padding: '4px 10px' }}
-                >
-                  Show "Needs review" ({countForFilter('Needs review')})
-                </button>
-              </div>
-            ) : (
-              filteredClaims.map(c => {
-                const isSelected = selectedClaim && c.id === selectedClaim.id;
-                const verdictDisplay = c.verdict?.display_verdict || c.verdict?.verdict || 'Needs review';
-                const vClass = getVerdictClass(verdictDisplay);
-                const isItemInacc = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+          {/* ------------------------------------------------------------------
+              LEFT COLUMN (26%): CLAIM LIST + COMPACT FILTER / SEARCH CONTROLS
+              ------------------------------------------------------------------ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
+            {/* Compact Search Input */}
+            <div style={{ position: 'relative' }}>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--text-tertiary)"
+                strokeWidth="2.2"
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              >
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                placeholder="Search claims..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '7px 10px 7px 30px',
+                  fontSize: '12px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-line)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 3 Primary Filter Tabs (Flagged, All, Verified) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '4px',
+              background: 'var(--bg-surface-elevated)',
+              padding: '3px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-line)',
+            }}>
+              {[
+                { id: 'flagged', label: 'Flagged', count: countFlagged },
+                { id: 'all', label: 'All', count: claims.length },
+                { id: 'verified', label: 'Verified', count: countVerified }
+              ].map(t => {
+                const active = primaryFilter === t.id && categoryDropdown === 'all';
                 return (
-                  <div
-                    key={c.id}
-                    onClick={() => setSelectedClaimId(c.id)}
-                    className={`claim-list-card ${isSelected ? 'selected' : ''}`}
-                    style={{ padding: '12px 14px', borderRadius: '10px' }}
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setPrimaryFilter(t.id);
+                      setCategoryDropdown('all');
+                    }}
+                    style={{
+                      background: active ? 'var(--bg-surface)' : 'transparent',
+                      color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      border: active ? '1px solid var(--border-line)' : '1px solid transparent',
+                      borderRadius: '6px',
+                      padding: '5px 4px',
+                      fontSize: '11px',
+                      fontWeight: active ? '700' : '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}>
-                        {c.id.toUpperCase()} · {c.source_location || 'Results'}
-                      </span>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {isItemInacc && (
-                          <span style={{ fontSize: '9px', background: 'var(--needs-review-bg)', color: 'var(--needs-review-color)', padding: '1px 5px', borderRadius: '3px', fontWeight: '700' }}>
-                            INACCESSIBLE
+                    <span>{t.label}</span>
+                    <span style={{
+                      fontSize: '9.5px',
+                      padding: '1px 5px',
+                      borderRadius: '6px',
+                      background: active ? 'var(--accent-orange)' : 'var(--bg-surface-subtle)',
+                      color: active ? '#fff' : 'var(--text-tertiary)',
+                      fontWeight: '700'
+                    }}>
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Compact Category Dropdown for Fine-Grained Filtering */}
+            <div>
+              <select
+                value={categoryDropdown}
+                onChange={(e) => {
+                  setCategoryDropdown(e.target.value);
+                  if (e.target.value !== 'all') {
+                    setPrimaryFilter('custom');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '5px 8px',
+                  fontSize: '11px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-line)',
+                  borderRadius: '6px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="all">Category: All Verdicts</option>
+                <option value="needs_review">Needs review ({countForFilter('Needs review')})</option>
+                <option value="supported">Supported ({countForFilter('Supported')})</option>
+                <option value="partial">Partially Supported ({countForFilter('Partial')})</option>
+                <option value="contradictory">Contradictory ({countForFilter('Contradictory')})</option>
+                <option value="unsupported">Unsupported ({countForFilter('Unsupported')})</option>
+                <option value="missing_citations">Missing citations ({countForFilter('Missing citations')})</option>
+              </select>
+            </div>
+
+            {/* Scannable Claim List Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filteredClaims.length === 0 ? (
+                <div className="panel" style={{ padding: '20px 16px', textAlign: 'center' }}>
+                  <p style={{ marginBottom: '4px', color: 'var(--text-primary)', fontWeight: '600', fontSize: '13px' }}>
+                    No Claims Matching Filters
+                  </p>
+                  <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.4 }}>
+                    Try clearing the search query or selecting "All".
+                  </p>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setPrimaryFilter('all');
+                      setCategoryDropdown('all');
+                      setSearchQuery('');
+                    }}
+                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              ) : (
+                filteredClaims.map(c => {
+                  const isSelected = selectedClaim && c.id === selectedClaim.id;
+                  const verdictDisplay = c.verdict?.display_verdict || c.verdict?.verdict || 'Needs review';
+                  const vClass = getVerdictClass(verdictDisplay);
+                  const isItemInacc = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedClaimId(c.id)}
+                      className={`claim-list-card ${isSelected ? 'selected' : ''}`}
+                      style={{ padding: '12px 14px', borderRadius: '10px', cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}>
+                          {c.id.toUpperCase()} · {c.source_location || 'Results'}
+                        </span>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {isItemInacc && (
+                            <span style={{ fontSize: '9px', background: 'var(--needs-review-bg)', color: 'var(--needs-review-color)', padding: '1px 5px', borderRadius: '3px', fontWeight: '700' }}>
+                              INACCESSIBLE
+                            </span>
+                          )}
+                          <span className={`verdict-badge ${vClass}`} style={{ fontSize: '9.5px', padding: '2px 6px' }}>
+                            {verdictDisplay}
                           </span>
-                        )}
-                        <span className={`verdict-badge ${vClass}`} style={{ fontSize: '9.5px', padding: '2px 6px' }}>
-                          {verdictDisplay}
+                        </div>
+                      </div>
+
+                      <p style={{
+                        fontSize: '12.5px',
+                        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        lineHeight: 1.4,
+                        margin: '3px 0 0 0',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        "{c.text}"
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
+                        <span>Citation: [{c.citation_keys?.join(', ') || '1'}]</span>
+                        <span style={{ fontWeight: '600', color: isSelected ? 'var(--accent-orange)' : 'var(--text-secondary)' }}>
+                          Confidence: {((c.verdict?.confidence || 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                     </div>
-
-                    <p style={{
-                      fontSize: '12.5px',
-                      color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      lineHeight: 1.4,
-                      margin: '2px 0 0 0',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      "{c.text}"
-                    </p>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
-                      <span>Citation: [{c.citation_keys?.join(', ') || '1'}]</span>
-                      <span style={{ fontWeight: '600', color: isSelected ? 'var(--accent-orange)' : 'var(--text-secondary)' }}>
-                        Confidence: {((c.verdict?.confidence || 0) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          {/* RIGHT COLUMN: SELECTED CLAIM VERIFICATION */}
+          {/* ------------------------------------------------------------------
+              RIGHT MAIN WORKSPACE (74%): SELECTED CLAIM + SINGLE-LEVEL TABS
+              ------------------------------------------------------------------ */}
           {!selectedClaim ? (
             <div className="panel" style={{ padding: '40px 24px', textAlign: 'center' }}>
               <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
                 Select a Claim to Verify
               </h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '12.5px' }}>
-                Choose an empirical assertion from the left list to review proof and diagnostics.
+                Choose an empirical assertion from the left list to review proof, run Red Team audits, or inspect diagnostics.
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-              {/* Selected Scientific Claim Card */}
-              <div className="panel" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-                    ASSERTED SCIENTIFIC CLAIM · {selectedClaim.source_location}
-                  </span>
-                  <span style={{ fontSize: '11.5px', color: 'var(--accent-orange)', fontWeight: '600' }}>
-                    Citation: [{selectedClaim.citation_keys?.join(', ')}]
-                  </span>
+              {/* ==============================================================
+                  PINNED ASSERTED CLAIM HEADER CARD (24px Padding)
+                  ============================================================== */}
+              <div className="panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+                {/* Grouped Metadata Subtle Subtitle Row */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  fontSize: '11px',
+                  color: 'var(--text-tertiary)',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid var(--border-line)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: '700', textTransform: 'uppercase', color: 'var(--accent-orange)' }}>
+                      {selectedClaim.id.toUpperCase()}
+                    </span>
+                    <span>•</span>
+                    <span>{selectedClaim.source_location || 'Results'}</span>
+                    <span>•</span>
+                    <span>Citation: [{selectedClaim.citation_keys?.join(', ') || '1'}]</span>
+                    {selectedClaim.verdict?.audit_id && (
+                      <>
+                        <span>•</span>
+                        <span>Audit ID: <code style={{ color: 'var(--text-secondary)' }}>{selectedClaim.verdict.audit_id.slice(0, 8)}</code></span>
+                      </>
+                    )}
+                    {selectedClaim.verdict?.timestamp && (
+                      <>
+                        <span>•</span>
+                        <span>{new Date(selectedClaim.verdict.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {selectedClaim.verdict?.override_info ? (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: 'var(--partial-color)',
+                        background: 'var(--partial-bg)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--partial-border)'
+                      }}>
+                        Overridden to {selectedClaim.verdict.override_info.override_verdict}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
+                        No Overrides
+                      </span>
+                    )}
+                    {isInaccessible && (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: 'var(--needs-review-color)',
+                        background: 'var(--needs-review-bg)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--needs-review-border)'
+                      }}>
+                        Inaccessible Source (0% Cap)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <h2 style={{ fontSize: '19px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: 1.4, fontFamily: 'var(--font-serif)', margin: 0 }}>
+                {/* Asserted Scientific Claim Headline */}
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.45,
+                  fontFamily: 'var(--font-serif)',
+                  margin: '4px 0 0 0'
+                }}>
                   "{selectedClaim.text}"
                 </h2>
 
-                {/* Inaccessible Banner */}
-                {isInaccessible && (
-                  <div className="inaccessible-banner" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '16px' }}>⚠️</div>
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--needs-review-color)' }}>
-                        Source Inaccessible · Database Accounting
-                      </div>
-                      <p style={{ fontSize: '11.5px', color: 'var(--text-primary)', margin: '2px 0 0 0' }}>
-                        Full publication text not accessible. Confidence capped at <strong>0%</strong> (Golden Rule 3/4).
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Active Override Banner */}
-                {selectedClaim.verdict?.override_info && (
-                  <div style={{
-                    background: 'var(--accent-orange-subtle)',
-                    border: '1px solid var(--accent-orange-border)',
-                    borderRadius: '8px',
-                    padding: '10px 14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '6px'
-                  }}>
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-primary)' }}>
-                      <strong style={{ color: 'var(--accent-orange)' }}>✎ Override Active:</strong> Overridden to <strong>{selectedClaim.verdict.override_info.override_verdict}</strong>
-                    </span>
-                    <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
-                      by {selectedClaim.verdict.override_info.reviewer_id}
-                    </span>
-                  </div>
-                )}
-
-                {/* Computed Verdict Strip */}
+                {/* Computed Verdict Strip with Actions */}
                 <div style={{
                   background: 'var(--bg-surface-elevated)',
                   border: '1px solid var(--border-line)',
@@ -941,9 +1141,9 @@ export default function ReportScreen({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '12px'
+                  gap: '14px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div>
                       <span style={{ fontSize: '9.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
                         COMPUTED VERDICT
@@ -953,12 +1153,12 @@ export default function ReportScreen({
                       </span>
                     </div>
 
-                    <div style={{ borderLeft: '1px solid var(--border-line)', paddingLeft: '14px' }}>
+                    <div style={{ borderLeft: '1px solid var(--border-line)', paddingLeft: '16px' }}>
                       <span style={{ fontSize: '9.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
                         CONFIDENCE
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '80px', height: '5px', background: 'var(--bg-surface-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '85px', height: '5px', background: 'var(--bg-surface-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
                           <div style={{
                             width: `${(selectedClaim.verdict?.confidence || 0) * 100}%`,
                             height: '100%',
@@ -972,12 +1172,12 @@ export default function ReportScreen({
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  {/* Clean Action Group */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleAction('accept')}
-                      style={{ color: 'var(--supported-color)', borderColor: 'var(--supported-border)', fontSize: '11.5px', padding: '4px 10px' }}
+                      style={{ color: 'var(--supported-color)', borderColor: 'var(--supported-border)', fontSize: '12px', padding: '5px 12px' }}
                       title="Accept computed verdict"
                     >
                       ✓ Accept
@@ -988,7 +1188,7 @@ export default function ReportScreen({
                         setShowOverrideModal(prev => !prev);
                         setShowCommentModal(false);
                       }}
-                      style={{ color: 'var(--partial-color)', borderColor: 'var(--partial-border)', fontSize: '11.5px', padding: '4px 10px' }}
+                      style={{ color: 'var(--partial-color)', borderColor: 'var(--partial-border)', fontSize: '12px', padding: '5px 12px' }}
                       title="Override verdict with justification"
                     >
                       ✎ Override
@@ -999,7 +1199,7 @@ export default function ReportScreen({
                         setShowCommentModal(prev => !prev);
                         setShowOverrideModal(false);
                       }}
-                      style={{ color: 'var(--needs-review-color)', borderColor: 'var(--needs-review-border)', fontSize: '11.5px', padding: '4px 10px' }}
+                      style={{ color: 'var(--needs-review-color)', borderColor: 'var(--needs-review-border)', fontSize: '12px', padding: '5px 12px' }}
                       title="Add review comment"
                     >
                       💬 Comment
@@ -1007,7 +1207,7 @@ export default function ReportScreen({
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleOpenSourceEvidence(selectedClaim)}
-                      style={{ color: 'var(--accent-orange)', borderColor: 'var(--accent-orange-border)', fontSize: '11.5px', padding: '4px 10px' }}
+                      style={{ color: 'var(--accent-orange)', borderColor: 'var(--accent-orange-border)', fontSize: '12px', padding: '5px 12px' }}
                       title="Inspect full source passage"
                     >
                       Inspect Source ↗
@@ -1015,10 +1215,10 @@ export default function ReportScreen({
                   </div>
                 </div>
 
-                {/* Triage Explanation */}
+                {/* Triage Analysis without inner 1px border */}
                 {selectedClaim.verdict?.explanation && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Triage Analysis: </strong>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    <strong style={{ color: 'var(--text-primary)', fontWeight: '600' }}>Triage Analysis: </strong>
                     {selectedClaim.verdict.explanation}
                   </div>
                 )}
@@ -1026,7 +1226,7 @@ export default function ReportScreen({
                 {/* Reviewer Note Notification */}
                 {reviewNote && (
                   <div style={{
-                    padding: '6px 12px',
+                    padding: '8px 14px',
                     borderRadius: '6px',
                     background: 'var(--accent-orange-subtle)',
                     color: 'var(--accent-orange)',
@@ -1122,7 +1322,8 @@ export default function ReportScreen({
                           borderRadius: '6px',
                           padding: '6px 10px',
                           fontSize: '11.5px',
-                          color: 'var(--text-primary)'
+                          color: 'var(--text-primary)',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
@@ -1186,7 +1387,8 @@ export default function ReportScreen({
                         padding: '6px 10px',
                         fontSize: '11.5px',
                         color: 'var(--text-primary)',
-                        resize: 'vertical'
+                        resize: 'vertical',
+                        boxSizing: 'border-box'
                       }}
                     />
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -1201,206 +1403,258 @@ export default function ReportScreen({
                 )}
               </div>
 
-              {/* ----------------------------------------------------------------
-                  DETAILED TECHNICAL SECTIONS (EXPANDABLE / CLEAN BELOW CLAIM)
-                  ---------------------------------------------------------------- */}
-              <div className="panel" style={{ padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-                    TECHNICAL EVIDENCE & DIAGNOSTICS:
-                  </span>
+              {/* ==============================================================
+                  UNIFIED SINGLE-LEVEL HORIZONTAL TAB BAR (Directly Below Claim)
+                  ============================================================== */}
+              <div className="workspace-tab-nav" style={{ margin: 0 }}>
+                <button
+                  className={`workspace-tab-btn ${activeTab === 'proof' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('proof')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                  Source Proof & Slots
+                </button>
 
-                  <div className="deep-dive-tab-bar" style={{ margin: 0 }}>
-                    <button
-                      className={`workspace-tab-btn ${technicalTab === 'proof' ? 'active' : ''}`}
-                      onClick={() => setTechnicalTab('proof')}
-                      style={{ fontSize: '11.5px', padding: '5px 12px' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                      </svg>
-                      Verification Proof & Slots
-                    </button>
+                <button
+                  className={`workspace-tab-btn ${activeTab === 'redteam' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('redteam')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Red Team & Evidence Graph
+                </button>
 
-                    <button
-                      className={`workspace-tab-btn ${technicalTab === 'diagnostics' ? 'active' : ''}`}
-                      onClick={() => setTechnicalTab('diagnostics')}
-                      style={{ fontSize: '11.5px', padding: '5px 12px' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      Diagnostics ({allMissingWarnings.length})
-                    </button>
+                <button
+                  className={`workspace-tab-btn ${activeTab === 'diagnostics' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('diagnostics')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Diagnostics & Audit Trail
+                  {allMissingWarnings.length > 0 && (
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '1px 6px',
+                      borderRadius: '8px',
+                      background: 'rgba(227, 169, 58, 0.2)',
+                      color: 'var(--partial-color)',
+                      marginLeft: '4px'
+                    }}>
+                      {allMissingWarnings.length}
+                    </span>
+                  )}
+                </button>
+              </div>
 
-                    <button
-                      className={`workspace-tab-btn ${technicalTab === 'audit' ? 'active' : ''}`}
-                      onClick={() => setTechnicalTab('audit')}
-                      style={{ fontSize: '11.5px', padding: '5px 12px' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                      Audit Trail ({selectedClaim.reviews?.length || 0})
-                    </button>
+              {/* ==============================================================
+                  TAB 1: SOURCE PROOF & SLOTS
+                  ============================================================== */}
+              {activeTab === 'proof' && (
+                <div className="panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                  {/* Verified Source Quote Card */}
+                  <div style={{
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-line)',
+                    borderLeft: `4px solid ${isQuoteVerified ? 'var(--supported-color)' : 'var(--accent-orange)'}`,
+                    borderRadius: '10px',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10.5px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        color: isQuoteVerified ? 'var(--supported-color)' : 'var(--accent-orange)',
+                        background: isQuoteVerified ? 'var(--supported-bg)' : 'var(--accent-orange-subtle)',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        border: `1px solid ${isQuoteVerified ? 'var(--supported-border)' : 'var(--accent-orange-border)'}`
+                      }}>
+                        {isQuoteVerified ? 'VERIFIED SOURCE QUOTE' : 'UNVERIFIED QUOTE'}
+                      </span>
+
+                      <span style={{ fontSize: '11px', color: isQuoteVerified ? 'var(--supported-color)' : 'var(--unsupported-color)', fontWeight: '600' }}>
+                        {isQuoteVerified ? '✓ Code-verified verbatim proof confirmed' : '⚠️ Proof held for review'}
+                      </span>
+                    </div>
+
+                    <div style={{
+                      fontFamily: 'var(--font-serif)',
+                      fontSize: '15px',
+                      lineHeight: 1.6,
+                      fontStyle: 'italic',
+                      color: 'var(--text-primary)',
+                      padding: '12px 16px',
+                      background: 'var(--bg-surface)',
+                      borderRadius: '8px',
+                      borderLeft: '2px solid var(--border-line)'
+                    }}>
+                      "{verifiedSlotResult.quote || 'In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%.'}"
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid var(--border-line)',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <div>
+                        <span>Source: </span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{paperTitle}</strong>
+                        {paperDoi && (
+                          <a
+                            href={`https://doi.org/${paperDoi}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: 'var(--accent-orange)', textDecoration: 'none', marginLeft: '6px', fontWeight: '600' }}
+                          >
+                            doi:{paperDoi} ↗
+                          </a>
+                        )}
+                        <span> · Page {pageNum || '1'}</span>
+                      </div>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleOpenSourceEvidence(selectedClaim)}
+                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                      >
+                        View Full Passage ↗
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Collapsible/Compact 4-Column Slot Verification Table */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        FACTUAL SLOT VERIFICATION ({(selectedClaim.slots || []).length} SLOTS)
+                      </span>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setIsSlotsCollapsed(prev => !prev)}
+                        style={{ fontSize: '11px', padding: '3px 8px' }}
+                      >
+                        {isSlotsCollapsed ? 'Show Slots Table ▾' : 'Collapse Slots Table ▲'}
+                      </button>
+                    </div>
+
+                    {!isSlotsCollapsed && (
+                      <div style={{
+                        overflowX: 'auto',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-line)',
+                        background: 'var(--bg-surface-elevated)'
+                      }}>
+                        <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-line)', background: 'var(--bg-surface-subtle)', color: 'var(--text-tertiary)' }}>
+                              <th style={{ padding: '9px 14px' }}>SLOT ID</th>
+                              <th style={{ padding: '9px 14px' }}>FIELD TYPE</th>
+                              <th style={{ padding: '9px 14px' }}>EXPECTED VALUE</th>
+                              <th style={{ padding: '9px 14px' }}>CODE VERIFICATION & STATUS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(selectedClaim.slots || []).map((slot, sIdx) => {
+                              const res = selectedClaim.slot_results?.find(r => r.slot_id === slot.id) || {};
+                              const isMatch = res.status === 'match';
+
+                              return (
+                                <tr key={slot.id || sIdx} style={{ borderBottom: '1px solid var(--border-line)' }}>
+                                  <td style={{ padding: '9px 14px', fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>
+                                    {slot.id}
+                                  </td>
+                                  <td style={{ padding: '9px 14px', textTransform: 'uppercase', fontWeight: '600', fontSize: '11px' }}>
+                                    {slot.field_type}
+                                  </td>
+                                  <td style={{ padding: '9px 14px', color: 'var(--text-primary)' }}>
+                                    {slot.expected_value}
+                                  </td>
+                                  <td style={{ padding: '9px 14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{
+                                        display: 'inline-block',
+                                        padding: '2px 7px',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: '700',
+                                        background: isMatch ? 'var(--supported-bg)' : 'var(--unsupported-bg)',
+                                        color: isMatch ? 'var(--supported-color)' : 'var(--unsupported-color)',
+                                      }}>
+                                        {res.status?.toUpperCase() || (isMatch ? 'MATCH' : 'ABSENT')}
+                                      </span>
+                                      <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                                        {res.number_match === false ? (
+                                          <span style={{ color: 'var(--contradictory-color)' }}>Mismatch vs quote</span>
+                                        ) : res.quote_verified ? (
+                                          <span style={{ color: 'var(--supported-color)' }}>Verbatim quote match</span>
+                                        ) : (
+                                          <span style={{ color: 'var(--text-tertiary)' }}>Unverified</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                {/* TAB 1: VERIFICATION PROOF & SLOTS */}
-                {technicalTab === 'proof' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Unified Quote Card */}
-                    <div style={{
-                      background: 'var(--bg-surface-elevated)',
-                      border: '1px solid var(--border-line)',
-                      borderLeft: `3px solid ${isQuoteVerified ? 'var(--supported-color)' : 'var(--accent-orange)'}`,
-                      borderRadius: '8px',
-                      padding: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          color: isQuoteVerified ? 'var(--supported-color)' : 'var(--accent-orange)',
-                          background: isQuoteVerified ? 'var(--supported-bg)' : 'var(--accent-orange-subtle)',
-                          padding: '2px 8px',
-                          borderRadius: '8px',
-                          border: `1px solid ${isQuoteVerified ? 'var(--supported-border)' : 'var(--accent-orange-border)'}`
-                        }}>
-                          {isQuoteVerified ? 'VERIFIED SOURCE QUOTE' : 'UNVERIFIED QUOTE'}
-                        </span>
+              {/* ==============================================================
+                  TAB 2: RED TEAM & EVIDENCE GRAPH
+                  ============================================================== */}
+              {activeTab === 'redteam' && (
+                <div>
+                  <RedTeamPanel
+                    claim={selectedClaim}
+                    reportId={report?.id}
+                    demoMode={demoMode}
+                    theme={theme}
+                  />
+                </div>
+              )}
 
-                        <span style={{ fontSize: '10.5px', color: isQuoteVerified ? 'var(--supported-color)' : 'var(--unsupported-color)', fontWeight: '600' }}>
-                          {isQuoteVerified ? '✓ Code-verified verbatim proof confirmed' : '⚠️ Proof held for review'}
-                        </span>
-                      </div>
+              {/* ==============================================================
+                  TAB 3: DIAGNOSTICS & AUDIT TRAIL
+                  ============================================================== */}
+              {activeTab === 'diagnostics' && (
+                <div className="panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
-                      <div style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: '14.5px',
-                        lineHeight: 1.55,
-                        fontStyle: 'italic',
-                        color: 'var(--text-primary)',
-                        padding: '10px 14px',
-                        background: 'var(--bg-surface)',
-                        borderRadius: '6px',
-                        borderLeft: '2px solid var(--border-line)'
-                      }}>
-                        "{verifiedSlotResult.quote || 'In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%.'}"
-                      </div>
-
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        paddingTop: '8px',
-                        borderTop: '1px solid var(--border-line)',
-                        fontSize: '11.5px',
-                        color: 'var(--text-secondary)'
-                      }}>
-                        <div>
-                          <span>Source: </span>
-                          <strong style={{ color: 'var(--text-primary)' }}>{paperTitle}</strong>
-                          {paperDoi && (
-                            <a
-                              href={`https://doi.org/${paperDoi}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ color: 'var(--accent-orange)', textDecoration: 'none', marginLeft: '6px', fontWeight: '600' }}
-                            >
-                              doi:{paperDoi} ↗
-                            </a>
-                          )}
-                          <span> · Page {pageNum || '1'}</span>
-                        </div>
-
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleOpenSourceEvidence(selectedClaim)}
-                          style={{ fontSize: '10.5px', padding: '3px 8px' }}
-                        >
-                          View Full Passage ↗
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Factual Slots Table */}
-                    <div>
-                      <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border-line)', background: 'var(--bg-surface-subtle)', color: 'var(--text-tertiary)' }}>
-                            <th style={{ padding: '8px 12px' }}>SLOT ID</th>
-                            <th style={{ padding: '8px 12px' }}>FIELD TYPE</th>
-                            <th style={{ padding: '8px 12px' }}>EXPECTED VALUE</th>
-                            <th style={{ padding: '8px 12px' }}>CODE VERIFICATION</th>
-                            <th style={{ padding: '8px 12px' }}>STATUS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(selectedClaim.slots || []).map((slot, sIdx) => {
-                            const res = selectedClaim.slot_results?.find(r => r.slot_id === slot.id) || {};
-                            const isMatch = res.status === 'match';
-
-                            return (
-                              <tr key={slot.id || sIdx} style={{ borderBottom: '1px solid var(--border-line)' }}>
-                                <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>
-                                  {slot.id}
-                                </td>
-                                <td style={{ padding: '8px 12px', textTransform: 'uppercase', fontWeight: '600', fontSize: '10.5px' }}>
-                                  {slot.field_type}
-                                </td>
-                                <td style={{ padding: '8px 12px', color: 'var(--text-primary)' }}>
-                                  {slot.expected_value}
-                                </td>
-                                <td style={{ padding: '8px 12px' }}>
-                                  {res.number_match === false ? (
-                                    <span style={{ color: 'var(--contradictory-color)' }}>Mismatch vs quote</span>
-                                  ) : res.quote_verified ? (
-                                    <span style={{ color: 'var(--supported-color)' }}>Verbatim quote match</span>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-tertiary)' }}>Unverified</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '8px 12px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '10px',
-                                    fontWeight: '700',
-                                    background: isMatch ? 'var(--supported-bg)' : 'var(--unsupported-bg)',
-                                    color: isMatch ? 'var(--supported-color)' : 'var(--unsupported-color)',
-                                  }}>
-                                    {res.status || (isMatch ? 'MATCH' : 'ABSENT')}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 2: BIBLIOGRAPHIC DIAGNOSTICS */}
-                {technicalTab === 'diagnostics' && (
+                  {/* 1. Missing Citations & Bibliographic Integrity */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
-                        Filter by classification:
+                      <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        BIBLIOGRAPHIC INTEGRITY & MISSING CITATIONS
                       </span>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {[
@@ -1412,7 +1666,7 @@ export default function ReportScreen({
                             key={df.id}
                             onClick={() => setDiagFilter(df.id)}
                             style={{
-                              fontSize: '10.5px',
+                              fontSize: '11px',
                               padding: '3px 8px',
                               borderRadius: '4px',
                               background: diagFilter === df.id ? 'var(--bg-surface)' : 'transparent',
@@ -1428,12 +1682,12 @@ export default function ReportScreen({
                     </div>
 
                     {displayedWarnings.length === 0 ? (
-                      <div style={{ padding: '18px', textAlign: 'center', color: 'var(--supported-color)', fontSize: '12px', background: 'var(--bg-surface-elevated)', borderRadius: '6px' }}>
+                      <div style={{ padding: '16px 20px', textAlign: 'center', color: 'var(--supported-color)', fontSize: '12.5px', background: 'var(--bg-surface-elevated)', borderRadius: '8px' }}>
                         ✓ Complete bibliographic integrity confirmed: all assertions carry verified citations.
                       </div>
                     ) : (
                       displayedWarnings.map((w, idx) => (
-                        <div key={`diag-${idx}`} style={{ padding: '12px 14px', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-line)' }}>
+                        <div key={`diag-${idx}`} style={{ padding: '12px 16px', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-line)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '10px', fontWeight: '700', color: '#e3a93a', textTransform: 'uppercase' }}>
                               {w.warning_type?.replace('_', ' ')}
@@ -1452,33 +1706,43 @@ export default function ReportScreen({
                       ))
                     )}
                   </div>
-                )}
 
-                {/* TAB 3: AUDIT TRAIL */}
-                {technicalTab === 'audit' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* 2. Reviewer Override & Ledger Audit Trail */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      HUMAN REVIEW & AUDIT LEDGER TRAIL
+                    </span>
+
                     {(!selectedClaim.reviews || selectedClaim.reviews.length === 0) ? (
-                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '10px 0' }}>
+                      <div style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        fontStyle: 'italic',
+                        padding: '14px 18px',
+                        background: 'var(--bg-surface-elevated)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-line)'
+                      }}>
                         Default stance: Human review. No reviewer modifications recorded for this claim yet.
                       </div>
                     ) : (
                       selectedClaim.reviews.map((rev) => (
-                        <div key={rev.review_id} className="audit-entry-item" style={{ padding: '10px 12px' }}>
+                        <div key={rev.review_id} className="audit-entry-item" style={{ padding: '12px 14px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--accent-orange)' }}>
                                 {rev.action}
                               </span>
-                              <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                                 by {rev.reviewer_id}
                               </span>
                             </div>
-                            <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                               {rev.created_at ? new Date(rev.created_at).toLocaleDateString() : ''}
                             </span>
                           </div>
                           {rev.comment && (
-                            <div style={{ fontSize: '11.5px', color: 'var(--text-primary)', marginTop: '4px' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginTop: '4px' }}>
                               "{rev.comment}"
                             </div>
                           )}
@@ -1486,8 +1750,53 @@ export default function ReportScreen({
                       ))
                     )}
                   </div>
-                )}
-              </div>
+
+                  {/* 3. Deterministic Technical Verification Diagnostics */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      ENGINE VERIFICATION RULES & ACCESS AUDIT
+                    </span>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '12px',
+                      background: 'var(--bg-surface-elevated)',
+                      padding: '14px 18px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-line)',
+                      fontSize: '12px'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>
+                          ACCESS TIER CAP
+                        </span>
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {selectedClaim.verdict?.access_tier?.toUpperCase() || 'FULL TEXT'} (Cap: {selectedClaim.verdict?.access_tier === 'inaccessible' ? '0%' : (selectedClaim.verdict?.access_tier === 'abstract' ? '70%' : '100%')})
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>
+                          RULES TRIGGERED
+                        </span>
+                        <strong style={{ color: 'var(--accent-orange)' }}>
+                          {selectedClaim.verdict?.rules_triggered?.join(', ') || 'RULE_EXACT_MATCH'}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>
+                          CONFIDENCE FORMULA
+                        </span>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          Access Cap − Absent Slots − Disagreement
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

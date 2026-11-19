@@ -33,7 +33,7 @@ export default function RedTeamPanel({
   const [selectedNode, setSelectedNode] = useState(null);
   const [activeStageTab, setActiveStageTab] = useState('stage_a');
   const [copiedDossier, setCopiedDossier] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Sync investigation state when claim or reportId changes
   useEffect(() => {
@@ -1151,6 +1151,10 @@ export default function RedTeamPanel({
                       const y1 = 70 + eIdx * 90;
                       const x2 = 270;
                       const y2 = 160;
+                      const mx = (x1 + x2) / 2;
+                      const my = (y1 + y2) / 2 - 8;
+                      const labelText = edge.label || '';
+                      const labelWidth = Math.max(46, labelText.length * 6.5 + 14);
                       return (
                         <g key={eIdx}>
                           <line
@@ -1162,16 +1166,33 @@ export default function RedTeamPanel({
                             strokeWidth="2"
                             strokeDasharray={edge.status === 'inferred' ? '4 3' : 'none'}
                           />
-                          <text
-                            x={(x1 + x2) / 2}
-                            y={(y1 + y2) / 2 - 8}
-                            fill="var(--text-tertiary)"
-                            fontSize="9"
-                            textAnchor="middle"
-                            fontWeight="500"
-                          >
-                            {edge.label}
-                          </text>
+                          {labelText && (
+                            <g>
+                              {/* Dark pill background to eliminate overlap with graph lines or nodes */}
+                              <rect
+                                x={mx - labelWidth / 2}
+                                y={my - 8}
+                                width={labelWidth}
+                                height={16}
+                                rx="8"
+                                ry="8"
+                                fill="var(--bg-surface-elevated)"
+                                stroke="var(--border-line)"
+                                strokeWidth="1"
+                              />
+                              <text
+                                x={mx}
+                                y={my}
+                                fill="var(--text-secondary)"
+                                fontSize="9"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fontWeight="600"
+                              >
+                                {labelText}
+                              </text>
+                            </g>
+                          )}
                         </g>
                       );
                     })}

@@ -152,6 +152,9 @@ export default function App() {
   const [demoMode, setDemoMode] = useState(true); // Default to offline demo mode (no live external API calls)
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTheme = params.get('theme');
+      if (urlTheme && ['light', 'dark'].includes(urlTheme)) return urlTheme;
       const saved = localStorage.getItem('credence_theme');
       if (saved) return saved;
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
