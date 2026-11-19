@@ -589,3 +589,177 @@ def polarity_check(claim: str, quote: str) -> CheckResult:
         details={}
     )
 
+
+# ---------------------------------------------------------------------------
+# Reference Integrity Checks (DOI Mismatch, Retraction, Secondary Source)
+# ---------------------------------------------------------------------------
+
+REVIEW_KEYWORDS_PATTERN = re.compile(
+    r'\b(review|systematic review|meta-analysis|survey|literature review|scoping review|overview of|a review of)\b',
+    re.IGNORECASE
+)
+
+
+def doi_mismatch_check(
+    reference_title: str,
+    candidate_title: str,
+    doi: str = "",
+    threshold: float = 0.45,
+) -> CheckResult:
+    """Deterministically check whether a cited DOI resolved to a mismatched paper title.
+
+    Args:
+        reference_title: The title specified in the manuscript bibliography/citation.
+        candidate_title: The actual title returned by the resolver (Crossref/OpenAlex).
+        doi: The identifier that was queried.
+        threshold: Minimum similarity threshold below which a mismatch is declared.
+    """
+    if not reference_title or not candidate_title:
+        return CheckResult(
+            passed=True,
+            reason="Insufficient title metadata to assess DOI mismatch",
+            details={"reference_title": reference_title, "candidate_title": candidate_title}
+        )
+
+    norm_ref = normalize_text(reference_title).lower()
+    norm_cand = normalize_text(candidate_title).lower()
+
+    # Fast path: exact match after normalization
+    if norm_ref == norm_cand:
+        return CheckResult(
+            passed=True,
+            reason="DOI resolves to the exact cited paper title",
+            details={"similarity": 1.0, "doi": doi}
+        )
+
+    # Token overlap similarity
+    tokens_ref = set(re.findall(r'\b[a-zA-Z0-9]{3,}\b', norm_ref))
+    tokens_cand = set(re.findall(r'\b[a-zA-Z0-9]{3,}\b', norm_cand))
+
+    if not tokens_ref or not tokens_cand:
+        sim = 0.0
+    else:
+        inter = len(tokens_ref & tokens_cand)
+        union = len(tokens_ref | tokens_cand)
+        overlap = inter / min(len(tokens_ref), len(tokens_cand))
+        jaccard = inter / union if union else 0.0
+        sim = 0.6 * overlap + 0.4 * jaccard
+
+    if sim < threshold:
+        return CheckResult(
+            passed=False,
+            reason=(
+                f"DOI mismatch: DOI '{doi}' resolves to '{candidate_title}' "
+                f"which does not match cited title '{reference_title}' (similarity {sim:.2f})"
+            ),
+            details={
+                "mismatch_type": "doi_mismatch",
+                "doi": doi,
+                "reference_title": reference_title,
+                "candidate_title": candidate_title,
+                "similarity": round(sim, 4),
+            }
+        )
+
+    return CheckResult(
+        passed=True,
+        reason="DOI resolves to a consistent paper title",
+        details={"doi": doi, "similarity": round(sim, 4)}
+    )
+
+
+def retraction_check(candidate: Any) -> CheckResult:
+    """Check whether a resolved paper has a formal retraction notice."""
+    if candidate is None:
+        return CheckResult(passed=True, reason="No candidate paper to check for retraction")
+
+    is_retracted = getattr(candidate, "is_retracted", False)
+    retraction_details = getattr(candidate, "retraction_details", {}) or {}
+
+    if is_retracted:
+        source_name = getattr(candidate, "source", "academic database")
+        return CheckResult(
+            passed=False,
+            reason=f"Paper retraction: cited work has been retracted (reported by {source_name})",
+            details={"is_retracted": True, "retraction_details": retraction_details}
+        )
+
+    return CheckResult(
+        passed=True,
+        reason="No retraction notice found for cited paper",
+        details={"is_retracted": False}
+    )
+
+
+def correction_check(candidate: Any) -> CheckResult:
+    """Check whether a resolved paper has an issued erratum or correction."""
+    if candidate is None:
+        return CheckResult(passed=True, reason="No candidate paper to check for correction")
+
+    is_corrected = getattr(candidate, "is_corrected", False)
+    correction_details = getattr(candidate, "correction_details", {}) or {}
+
+    if is_corrected:
+        source_name = getattr(candidate, "source", "academic database")
+        return CheckResult(
+            passed=False,
+            reason=f"Paper correction: cited work has an issued erratum/correction (reported by {source_name})",
+            details={"is_corrected": True, "correction_details": correction_details}
+        )
+
+    return CheckResult(
+        passed=True,
+        reason="No correction notice found for cited paper",
+        details={"is_corrected": False}
+    )
+
+
+def secondary_source_check(
+    candidate: Any = None,
+    title: str = "",
+    abstract: str = "",
+) -> CheckResult:
+    """Check whether a cited work is a secondary source (review/survey/meta-analysis).
+
+    If true, the verification engine should flag it and follow one citation hop to the primary source.
+    """
+    pub_type = getattr(candidate, "publication_type", "") if candidate else ""
+    check_title = (getattr(candidate, "title", "") or title or "").strip()
+    check_abstract = (getattr(candidate, "abstract", "") or abstract or "").strip()
+
+    is_review = False
+    indicators: list[str] = []
+
+    if pub_type in ("review", "survey", "review-article"):
+        is_review = True
+        indicators.append(f"publication_type={pub_type}")
+
+    if REVIEW_KEYWORDS_PATTERN.search(check_title):
+        is_review = True
+        indicators.append(f"title_keyword={REVIEW_KEYWORDS_PATTERN.search(check_title).group(0)}")
+
+    if check_abstract and REVIEW_KEYWORDS_PATTERN.search(check_abstract[:200]):
+        is_review = True
+        indicators.append("abstract_keyword")
+
+    if is_review:
+        return CheckResult(
+            passed=False,
+            reason=(
+                f"Secondary source detected: cited work is a review/survey ({', '.join(indicators)}). "
+                "One citation hop required to verify original primary empirical source."
+            ),
+            details={
+                "is_secondary_source": True,
+                "publication_type": pub_type,
+                "indicators": indicators,
+                "hops_required": 1,
+            }
+        )
+
+    return CheckResult(
+        passed=True,
+        reason="Primary empirical source: paper is not a secondary review or survey",
+        details={"is_secondary_source": False}
+    )
+

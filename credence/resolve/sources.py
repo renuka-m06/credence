@@ -15,6 +15,7 @@ Rules (AGENTS.md):
 
 from __future__ import annotations
 
+import re
 import time
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -24,7 +25,7 @@ import httpx
 
 from config import settings
 from credence.resolve.cache import CacheStore, cache_store
-from credence.resolve.matcher import CandidatePaper, MatchResult, score_candidate
+from credence.resolve.matcher import CandidatePaper, MatchResult, compute_title_similarity, score_candidate
 from credence.resolve.reference import Reference, extract_doi
 
 
@@ -127,6 +128,113 @@ class BaseClient:
         return None
 
 
+def _parse_crossref_message(msg: dict[str, Any], default_doi: Optional[str] = None) -> CandidatePaper:
+    """Parse Crossref API work message into a CandidatePaper with integrity metadata."""
+    title = msg.get("title", [""])[0] if msg.get("title") else ""
+    raw_doi = msg.get("DOI") or default_doi or ""
+    clean_doi = extract_doi(raw_doi) or raw_doi or None
+
+    issued = msg.get("issued", {}).get("date-parts", [[None]])
+    year = None
+    if issued and issued[0] and issued[0][0]:
+        try:
+            year = int(issued[0][0])
+        except (ValueError, TypeError):
+            pass
+
+    authors = []
+    for a in msg.get("author", []):
+        family = a.get("family", "")
+        given = a.get("given", "")
+        if family:
+            authors.append(f"{family}, {given}".strip(" ,"))
+
+    journal = msg.get("container-title", [""])[0] if msg.get("container-title") else None
+
+    # Retraction and correction detection from Crossref metadata
+    is_retracted = False
+    is_corrected = False
+    retraction_details: dict[str, Any] = {}
+    correction_details: dict[str, Any] = {}
+
+    for upd in msg.get("update-to", []):
+        upd_type = str(upd.get("type", "")).lower()
+        if upd_type in ("retraction", "removal", "withdrawal"):
+            is_retracted = True
+            retraction_details = upd
+        elif upd_type in ("correction", "erratum", "corrigendum", "expression_of_concern"):
+            is_corrected = True
+            correction_details = upd
+
+    rel = msg.get("relation", {})
+    if "is-retracted-by" in rel:
+        is_retracted = True
+        retraction_details["relation"] = rel["is-retracted-by"]
+    if "is-corrected-by" in rel:
+        is_corrected = True
+        correction_details["relation"] = rel["is-corrected-by"]
+
+    for assertion in msg.get("assertion", []):
+        name = str(assertion.get("name", "")).lower()
+        val = str(assertion.get("value", "")).lower()
+        if "retract" in name or "retract" in val:
+            is_retracted = True
+            retraction_details["assertion"] = assertion
+        elif "correct" in name or "errat" in name:
+            is_corrected = True
+            correction_details["assertion"] = assertion
+
+    if re.match(r'^(?:retracted|retraction):', title.strip(), re.IGNORECASE):
+        is_retracted = True
+        retraction_details["title_flag"] = True
+
+    # Publication type & review detection
+    raw_type = str(msg.get("type", "journal-article")).lower()
+    title_lower = title.lower()
+    review_pattern = re.compile(r'\b(review|systematic review|meta-analysis|survey|overview of|literature review)\b', re.IGNORECASE)
+    if raw_type in ("review-article", "review", "survey") or review_pattern.search(title_lower):
+        publication_type = "review"
+    else:
+        publication_type = raw_type
+
+    # Extract cited references for 1-hop traversal
+    refs: list[dict[str, Any]] = []
+    for r in msg.get("reference", []):
+        ref_doi = extract_doi(r.get("DOI", ""))
+        ref_title = r.get("article-title") or r.get("unstructured") or ""
+        ref_author = r.get("author") or ""
+        ref_year = None
+        if r.get("year"):
+            try:
+                ref_year = int(re.search(r'\b(19\d{2}|20\d{2})\b', str(r["year"])).group(1))
+            except Exception:
+                pass
+        refs.append({
+            "key": r.get("key"),
+            "doi": ref_doi,
+            "title": ref_title,
+            "author": ref_author,
+            "year": ref_year,
+            "unstructured": r.get("unstructured", ""),
+        })
+
+    return CandidatePaper(
+        source="crossref",
+        title=title,
+        doi=clean_doi,
+        authors=authors,
+        year=year,
+        journal=journal,
+        is_retracted=is_retracted,
+        is_corrected=is_corrected,
+        retraction_details=retraction_details,
+        correction_details=correction_details,
+        publication_type=publication_type,
+        references=refs,
+        raw_payload=msg,
+    )
+
+
 class CrossrefClient(BaseClient):
     """Client for Crossref metadata API."""
 
@@ -143,35 +251,7 @@ class CrossrefClient(BaseClient):
         data = self._get(f"works/{clean_doi}", headers=headers, reference_raw=reference_raw)
         if not data or "message" not in data:
             return None
-
-        msg = data["message"]
-        title = msg.get("title", [""])[0] if msg.get("title") else ""
-        year = None
-        issued = msg.get("issued", {}).get("date-parts", [[None]])
-        if issued and issued[0] and issued[0][0]:
-            try:
-                year = int(issued[0][0])
-            except ValueError:
-                pass
-
-        authors = []
-        for a in msg.get("author", []):
-            family = a.get("family", "")
-            given = a.get("given", "")
-            if family:
-                authors.append(f"{family}, {given}".strip(" ,"))
-
-        journal = msg.get("container-title", [""])[0] if msg.get("container-title") else None
-
-        return CandidatePaper(
-            source="crossref",
-            title=title,
-            doi=clean_doi,
-            authors=authors,
-            year=year,
-            journal=journal,
-            raw_payload=msg,
-        )
+        return _parse_crossref_message(data["message"], default_doi=clean_doi)
 
     def search_by_title(self, title: str, reference_raw: str = "") -> list[CandidatePaper]:
         headers = {"User-Agent": f"Credence/0.1.0 (mailto:{settings.crossref_mailto})"}
@@ -180,22 +260,72 @@ class CrossrefClient(BaseClient):
         if not data or "message" not in data or "items" not in data["message"]:
             return []
 
-        results = []
-        for msg in data["message"]["items"]:
-            t = msg.get("title", [""])[0] if msg.get("title") else ""
-            issued = msg.get("issued", {}).get("date-parts", [[None]])
-            year = int(issued[0][0]) if issued and issued[0] and issued[0][0] else None
-            authors = [f"{a.get('family', '')}, {a.get('given', '')}".strip(" ,") for a in msg.get("author", []) if a.get("family")]
-            results.append(CandidatePaper(
-                source="crossref",
-                title=t,
-                doi=msg.get("DOI"),
-                authors=authors,
-                year=year,
-                journal=msg.get("container-title", [""])[0] if msg.get("container-title") else None,
-                raw_payload=msg,
-            ))
-        return results
+        return [_parse_crossref_message(msg) for msg in data["message"]["items"]]
+
+
+def _parse_openalex_work(data: dict[str, Any], default_doi: Optional[str] = None) -> CandidatePaper:
+    """Parse OpenAlex work record into a CandidatePaper with integrity metadata."""
+    raw_doi = data.get("doi", "") or default_doi or ""
+    clean_doi = extract_doi(raw_doi) or (raw_doi.replace("https://doi.org/", "") if raw_doi else None)
+    title = data.get("title") or ""
+    year = data.get("publication_year")
+    authors = [a.get("author", {}).get("display_name", "") for a in data.get("authorships", []) if a.get("author")]
+    oa_url = data.get("open_access", {}).get("oa_url")
+
+    # Retraction and correction detection from OpenAlex metadata
+    is_retracted = bool(data.get("is_retracted", False))
+    is_corrected = False
+    retraction_details: dict[str, Any] = {}
+    correction_details: dict[str, Any] = {}
+
+    work_type = str(data.get("type", "")).lower()
+    if work_type == "retraction" or re.match(r'^(?:retracted|retraction):', title.strip(), re.IGNORECASE):
+        is_retracted = True
+        retraction_details["type"] = "retraction"
+    elif work_type in ("erratum", "paratext"):
+        is_corrected = True
+        correction_details["type"] = work_type
+
+    if is_retracted and not retraction_details:
+        retraction_details["is_retracted"] = True
+
+    # Secondary source (review/survey) detection
+    type_crossref = str(data.get("type_crossref", "")).lower()
+    genre = str(data.get("genre", "")).lower()
+    review_pattern = re.compile(r'\b(review|systematic review|meta-analysis|survey|overview of|literature review)\b', re.IGNORECASE)
+    if (
+        work_type in ("review", "survey")
+        or type_crossref == "review-article"
+        or genre == "review"
+        or review_pattern.search(title)
+    ):
+        publication_type = "review"
+    else:
+        publication_type = work_type or "journal-article"
+
+    refs: list[dict[str, Any]] = []
+    for ref_item in data.get("referenced_works", []):
+        if isinstance(ref_item, str):
+            refs.append({"openalex_id": ref_item})
+        elif isinstance(ref_item, dict):
+            refs.append(ref_item)
+
+    return CandidatePaper(
+        source="openalex",
+        title=title,
+        doi=clean_doi,
+        authors=authors,
+        year=year,
+        journal=data.get("primary_location", {}).get("source", {}).get("display_name") if data.get("primary_location") else None,
+        open_access_pdf_url=oa_url,
+        is_retracted=is_retracted,
+        is_corrected=is_corrected,
+        retraction_details=retraction_details,
+        correction_details=correction_details,
+        publication_type=publication_type,
+        references=refs,
+        raw_payload=data,
+    )
 
 
 class OpenAlexClient(BaseClient):
@@ -218,24 +348,7 @@ class OpenAlexClient(BaseClient):
         data = self._get(f"works/https://doi.org/{clean_doi}", params=params, reference_raw=reference_raw)
         if not data or "id" not in data:
             return None
-
-        title = data.get("title") or ""
-        year = data.get("publication_year")
-        authors = [a.get("author", {}).get("display_name", "") for a in data.get("authorships", []) if a.get("author")]
-        oa_url = data.get("open_access", {}).get("oa_url")
-        retracted = bool(data.get("is_retracted", False))
-
-        return CandidatePaper(
-            source="openalex",
-            title=title,
-            doi=clean_doi,
-            authors=authors,
-            year=year,
-            journal=data.get("primary_location", {}).get("source", {}).get("display_name") if data.get("primary_location") else None,
-            open_access_pdf_url=oa_url,
-            is_retracted=retracted,
-            raw_payload=data,
-        )
+        return _parse_openalex_work(data, default_doi=clean_doi)
 
     def search_by_title(self, title: str, reference_raw: str = "") -> list[CandidatePaper]:
         params = {"search": title, "per-page": 3, "mailto": settings.crossref_mailto}
@@ -245,21 +358,7 @@ class OpenAlexClient(BaseClient):
         if not data or "results" not in data:
             return []
 
-        candidates = []
-        for w in data.get("results", []):
-            doi = w.get("doi", "").replace("https://doi.org/", "") if w.get("doi") else None
-            authors = [a.get("author", {}).get("display_name", "") for a in w.get("authorships", []) if a.get("author")]
-            candidates.append(CandidatePaper(
-                source="openalex",
-                title=w.get("title") or "",
-                doi=doi,
-                authors=authors,
-                year=w.get("publication_year"),
-                open_access_pdf_url=w.get("open_access", {}).get("oa_url"),
-                is_retracted=bool(w.get("is_retracted", False)),
-                raw_payload=w,
-            ))
-        return candidates
+        return [_parse_openalex_work(w) for w in data.get("results", [])]
 
 
 class SemanticScholarClient(BaseClient):
@@ -418,3 +517,106 @@ class UnifiedResolver:
         scored_results = [score_candidate(reference, c) for c in candidates]
         best_result = max(scored_results, key=lambda r: r.score)
         return best_result
+
+    def follow_citation_hop(
+        self,
+        candidate: CandidatePaper,
+        query_or_claim: str = "",
+    ) -> Optional[CandidatePaper]:
+        """Follow ONE citation hop from a secondary review/survey to the primary source.
+
+        Args:
+            candidate: The cited candidate paper identified as a review or survey.
+            query_or_claim: The claim text or topic to match among cited references.
+
+        Returns:
+            The resolved primary CandidatePaper, or None if no valid hop was found.
+        """
+        if not candidate or not candidate.references:
+            return None
+
+        clean_query = query_or_claim.lower().strip()
+        claim_words = set(re.findall(r'\b[a-zA-Z]{4,}\b', clean_query))
+
+        best_ref = None
+        best_score = -1.0
+
+        for ref_dict in candidate.references:
+            ref_doi = ref_dict.get("doi")
+            ref_title = ref_dict.get("title") or ref_dict.get("unstructured") or ""
+            ref_openalex_id = ref_dict.get("openalex_id")
+
+            # Score relevance to query
+            ref_title_lower = ref_title.lower()
+            if ref_title:
+                t_score = compute_title_similarity(clean_query, ref_title)
+                r_words = set(re.findall(r'\b[a-zA-Z]{4,}\b', ref_title_lower))
+                overlap = len(claim_words & r_words) / max(len(claim_words), 1)
+                combined = 0.5 * t_score + 0.5 * overlap
+            elif ref_doi:
+                combined = 0.5
+            elif ref_openalex_id:
+                combined = 0.4
+            else:
+                combined = 0.0
+
+            if combined > best_score:
+                best_score = combined
+                best_ref = ref_dict
+
+        if not best_ref:
+            return None
+
+        hop_doi = best_ref.get("doi")
+        hop_title = best_ref.get("title")
+        hop_oa = best_ref.get("openalex_id")
+
+        # Fast path: If the reference payload already contains rich title and abstract (e.g. pre-cached or fixture)
+        if hop_title and best_ref.get("abstract"):
+            return CandidatePaper(
+                source="citation_hop",
+                title=hop_title,
+                doi=hop_doi,
+                authors=[best_ref.get("author")] if best_ref.get("author") else [],
+                year=best_ref.get("year"),
+                abstract=best_ref.get("abstract"),
+            )
+
+        # Resolve the selected reference via DOI, title, or OpenAlex ID
+        if hop_doi:
+            primary = self.crossref.get_by_doi(hop_doi)
+            if not primary:
+                primary = self.openalex.get_by_doi(hop_doi)
+            if not primary:
+                primary = self.semanticscholar.get_by_doi(hop_doi)
+            if primary:
+                return primary
+
+        if hop_title and len(hop_title.strip()) > 10:
+            cands = self.crossref.search_by_title(hop_title)
+            if not cands:
+                cands = self.openalex.search_by_title(hop_title)
+            if cands:
+                return cands[0]
+
+        if hop_oa:
+            clean_id = str(hop_oa).split("/")[-1]
+            params = {}
+            if settings.openalex_api_key:
+                params["api_key"] = settings.openalex_api_key
+            data = self.openalex._get(f"works/{clean_id}", params=params)
+            if data and "id" in data:
+                return _parse_openalex_work(data)
+
+        # If payload already contained mock/direct fields for offline fixtures
+        if hop_title:
+            return CandidatePaper(
+                source="citation_hop",
+                title=hop_title,
+                doi=hop_doi,
+                authors=[best_ref.get("author")] if best_ref.get("author") else [],
+                year=best_ref.get("year"),
+                abstract=best_ref.get("abstract"),
+            )
+
+        return None

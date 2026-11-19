@@ -63,10 +63,25 @@ class TestVerdictRuleTable:
         assert expected_rule in verdict.rules_triggered
 
     def test_outdated_citation_triggers_potentially_outdated(self):
-        """When a citation is marked superseded or outdated, verdict is potentially outdated."""
-        verdict = determine_verdict(slots=["match", "match"], is_outdated=True)
+        """When a citation has listed evidence of retraction or contradiction, verdict is potentially outdated."""
+        verdict = determine_verdict(
+            slots=["match", "match"],
+            is_outdated=True,
+            outdated_evidence={"retraction": "Retraction notice in Lancet 2022"}
+        )
         assert verdict.verdict == VerdictType.POTENTIALLY_OUTDATED
         assert RULE_OUTDATED_CITATION in verdict.rules_triggered
+        assert "retraction notice" in verdict.explanation.lower()
+
+    def test_outdated_guess_without_evidence_is_rejected(self):
+        """When outdated is asserted without listed evidence, it is rejected and evaluates slots deterministically."""
+        verdict = determine_verdict(
+            slots=["match", "match"],
+            is_outdated=True,
+            outdated_evidence=None  # No listed evidence (bare guess)
+        )
+        assert verdict.verdict == VerdictType.SUPPORTED
+        assert "RULE_UNGROUNDED_OUTDATED_REJECTED" in verdict.rules_triggered
 
     def test_hallucinated_quote_triggers_needs_review(self):
         """Golden Rule 2: Quote not found in source text discards slot -> Needs review."""

@@ -35,6 +35,11 @@ class CandidatePaper:
     url: Optional[str] = None
     open_access_pdf_url: Optional[str] = None
     is_retracted: bool = False
+    is_corrected: bool = False
+    retraction_details: dict[str, Any] = field(default_factory=dict)
+    correction_details: dict[str, Any] = field(default_factory=dict)
+    publication_type: str = "journal-article"
+    references: list[dict[str, Any]] = field(default_factory=list)
     raw_payload: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -226,11 +231,21 @@ def score_candidate(
             candidate=candidate,
         )
 
-    # 2. Fake Title: Extremely low title similarity (< 0.45)
+    # 2. Fake Title / DOI Mismatch: Extremely low title similarity (< 0.45)
     if title_score < TITLE_MISMATCH_THRESHOLD:
-        discrepancies.append(
-            f"Title mismatch: reference title '{reference.title}' does not match candidate title '{candidate.title}' (similarity {title_score:.2f})"
-        )
+        if reference.doi:
+            mismatch_msg = (
+                f"DOI mismatch: cited DOI '{reference.doi}' resolves to '{candidate.title}' "
+                f"which does not match cited title '{reference.title}' (similarity {title_score:.2f})"
+            )
+            doi_mismatch_flag = True
+        else:
+            mismatch_msg = (
+                f"Title mismatch: reference title '{reference.title}' does not match candidate title '{candidate.title}' (similarity {title_score:.2f})"
+            )
+            doi_mismatch_flag = False
+
+        discrepancies.append(mismatch_msg)
         return MatchResult(
             is_match=False,
             score=round(title_score, 4),
@@ -241,6 +256,7 @@ def score_candidate(
             doi_score=doi_score,
             discrepancies=discrepancies,
             candidate=candidate,
+            details={"doi_mismatch": doi_mismatch_flag, "reason": mismatch_msg},
         )
 
     # 3. Wrong Year: Title matches well (>= 0.70) or DOI matches, but year differs significantly
@@ -271,6 +287,12 @@ def score_candidate(
     if not is_match:
         discrepancies.append(f"Overall match score {overall_score:.2f} below threshold {VALID_MATCH_THRESHOLD:.2f}")
 
+    # Note retractions and corrections in discrepancies if matched
+    if candidate.is_retracted:
+        discrepancies.append(f"Retraction notice: candidate paper has been retracted (source: {candidate.source}).")
+    if candidate.is_corrected:
+        discrepancies.append(f"Correction notice: candidate paper has a formal erratum/correction (source: {candidate.source}).")
+
     return MatchResult(
         is_match=is_match,
         score=overall_score,
@@ -281,4 +303,33 @@ def score_candidate(
         doi_score=doi_score,
         discrepancies=discrepancies,
         candidate=candidate,
+        details={
+            "is_retracted": candidate.is_retracted,
+            "is_corrected": candidate.is_corrected,
+            "retraction_details": candidate.retraction_details,
+            "correction_details": candidate.correction_details,
+            "publication_type": candidate.publication_type,
+        },
     )
+
+
+def check_doi_mismatch(
+    reference: Reference,
+    candidate: Optional[CandidatePaper],
+    threshold: float = TITLE_MISMATCH_THRESHOLD,
+) -> tuple[bool, Optional[str]]:
+    """Determine whether a cited DOI resolved to a paper with a mismatched title.
+
+    Returns:
+        (is_mismatch, reason_string)
+    """
+    if not reference or not reference.doi or not candidate or not candidate.title:
+        return False, None
+
+    sim = compute_title_similarity(reference.title, candidate.title)
+    if sim < threshold:
+        return True, (
+            f"DOI mismatch: cited DOI '{reference.doi}' resolves to '{candidate.title}' "
+            f"which differs from cited title '{reference.title}' (similarity: {sim:.2f})"
+        )
+    return False, None

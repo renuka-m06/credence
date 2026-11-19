@@ -7,7 +7,15 @@ from typing import Any, Optional, Union
 
 from credence.report.models import AccessTier, Claim, Report, Slot, SlotResult, Verdict, VerdictType
 from credence.verify.adversarial import run_adversarial_pass
-from credence.verify.checks import hedge_check, number_check, polarity_check, quote_check
+from credence.verify.checks import (
+    doi_mismatch_check,
+    hedge_check,
+    number_check,
+    polarity_check,
+    quote_check,
+    retraction_check,
+    secondary_source_check,
+)
 from credence.verify.retrieve import retrieve_evidence_passages
 from credence.verify.slots import extract_slots
 from credence.verify.verdict import SlotStatus, determine_verdict
@@ -18,18 +26,22 @@ def verify_claim(
     source_text: str,
     access_tier: AccessTier = AccessTier.FULL_TEXT,
     is_outdated: bool = False,
+    outdated_evidence: Optional[Union[dict[str, Any], list[Any], str]] = None,
+    candidate_paper: Optional[Any] = None,
     citation_key: str = "4",
     llm_client: Optional[Any] = None,
     simulated_hallucinated_quote: Optional[str] = None,
+    resolver: Optional[Any] = None,
 ) -> Claim:
     """Execute complete verification pipeline for an individual claim against its cited source.
 
     Steps:
     1. Atomize claim into verifiable slots (finding, number, quote)
-    2. Primary retrieval pass (BM25 + embeddings + number-regex reranking)
-    3. Primary deterministic verification (quote_check, number_check, hedge_check)
-    4. Adversarial second pass hunting for contradictions and methodological limitations
-    5. Final verdict calculation via fixed rule table and computed confidence
+    2. Reference integrity check (retraction status, secondary-source hop)
+    3. Primary retrieval pass (BM25 + embeddings + number-regex reranking)
+    4. Primary deterministic verification (quote_check, number_check, hedge_check)
+    5. Adversarial second pass hunting for contradictions and methodological limitations
+    6. Final verdict calculation via fixed rule table and computed confidence
     """
     # 1. Structure Claim and extract slots
     if isinstance(claim_input, str):
@@ -52,9 +64,37 @@ def verify_claim(
                 llm_client=llm_client,
             )
 
+    # 2. Check candidate paper integrity (retraction & secondary source 1-hop traversal)
+    primary_hop_info: Optional[dict[str, Any]] = None
+    if candidate_paper is not None:
+        # Check retraction
+        ret_res = retraction_check(candidate_paper)
+        if not ret_res.passed:
+            is_outdated = True
+            outdated_evidence = outdated_evidence or {
+                "is_retracted": True,
+                "retraction": getattr(candidate_paper, "retraction_details", {}) or ret_res.reason
+            }
+
+        # Check secondary source (review/survey)
+        sec_res = secondary_source_check(candidate_paper)
+        if not sec_res.passed:
+            # Attempt 1 citation hop to original source
+            if resolver is not None and hasattr(resolver, "follow_citation_hop"):
+                hop_paper = resolver.follow_citation_hop(candidate_paper, claim.text)
+                if hop_paper:
+                    primary_hop_info = {
+                        "original_title": hop_paper.title,
+                        "original_doi": hop_paper.doi,
+                        "original_source": hop_paper.source,
+                    }
+                    # Augment source text with original paper text or abstract if available
+                    if hop_paper.abstract:
+                        source_text = f"{source_text}\n\n[Original Source: {hop_paper.title}]\n{hop_paper.abstract}"
+
     slot_results: list[SlotResult] = []
 
-    # 2. Primary evidence retrieval and verification
+    # 3. Primary evidence retrieval and verification
     for slot in claim.slots:
         passages = retrieve_evidence_passages(slot.expected_value or claim.text, source_text, top_k=3)
         best_passage = passages[0].text if passages else ""
@@ -141,10 +181,17 @@ def verify_claim(
         slots=final_slot_results,
         claim_id=claim.id,
         is_outdated=is_outdated,
+        outdated_evidence=outdated_evidence,
         access_tier=access_tier,
         has_hallucinated_quote=has_hallucinated,
         pass_disagreement=adv_res.pass_disagreement,
     )
+
+    # Attach secondary source hop details if traversed
+    if primary_hop_info:
+        for sr in claim.slot_results:
+            sr.details["primary_source_hop"] = primary_hop_info
+        verdict.explanation += f" (Secondary source review resolved to primary empirical study: {primary_hop_info.get('original_title')})"
 
     # If adversarial pass found contradiction/caveat but partial finding was supported:
     # Set clear explanation and human-review stance
