@@ -237,6 +237,18 @@ def verify_claim(
         verdict.explanation += f" Adversarial pass flagged: {'; '.join(adv_res.discrepancy_details)}."
 
     claim.verdict = verdict
+
+    # Audit citation truthfulness and relevance (Misleading Citation Detection)
+    from credence.verify.misleading_citations import audit_citation
+    audit_res = audit_citation(
+        claim=claim,
+        candidate_paper=candidate_paper,
+        source_text=source_text,
+        citation_key=citation_key,
+    )
+    claim.citation_classification = audit_res.classification.value
+    claim.citation_audit = audit_res.to_dict()
+
     return claim
 
 
@@ -266,6 +278,12 @@ def build_report(
         if total > 0 else 0.0
     )
 
+    valid_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "VALID CITATION")
+    misleading_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "MISLEADING CITATION")
+    unrelated_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "UNRELATED CITATION")
+    contradictory_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "CONTRADICTORY CITATION")
+    missing_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "MISSING CITATION")
+
     summary = {
         "total_claims": total,
         "supported": supported_cnt,
@@ -273,7 +291,12 @@ def build_report(
         "unsupported": unsupported_cnt,
         "contradictory": contradictory_cnt,
         "needs_review": review_cnt,
-        "human_review_required": review_cnt > 0 or partial_cnt > 0 or contradictory_cnt > 0,
+        "valid_citations": valid_cit_cnt,
+        "misleading_citations": misleading_cit_cnt,
+        "unrelated_citations": unrelated_cit_cnt,
+        "contradictory_citations": contradictory_cit_cnt,
+        "missing_citations": missing_cit_cnt,
+        "human_review_required": review_cnt > 0 or partial_cnt > 0 or contradictory_cnt > 0 or misleading_cit_cnt > 0 or contradictory_cit_cnt > 0,
     }
 
     return Report(

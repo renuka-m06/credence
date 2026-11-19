@@ -576,14 +576,19 @@ def polarity_check(claim: str, quote: str) -> CheckResult:
 
     # If claim asserts positive effect but quote reports negative/failed effect:
     claim_has_positive = any(term in claim_lower for term in POSITIVE_EFFECT_TERMS)
-    if claim_has_positive and quote_has_negative and not quote_has_positive:
-        return CheckResult(
-            passed=False,
-            reason="Polarity contradiction: claim asserts positive effect while quote reports negative/ineffective outcome",
-            details={
-                "type": "inverted_direction",
-            }
-        )
+    if claim_has_positive and (quote_has_negative or quote_negations) and not claim_negations:
+        real_positives = [
+            p for p in POSITIVE_EFFECT_TERMS
+            if p in quote_lower and not any(f"{p} {neg}" in quote_lower for neg in ("mortality", "death", "risk", "adverse", "events", "harm", "toxicity"))
+        ]
+        if not real_positives or any(neg in quote_lower for neg in ("failed to", "did not improve", "increased mortality", "worsened")):
+            return CheckResult(
+                passed=False,
+                reason="Polarity contradiction: claim asserts positive effect while quote reports negative/ineffective outcome",
+                details={
+                    "type": "inverted_direction",
+                }
+            )
 
     return CheckResult(
         passed=True,

@@ -70,6 +70,11 @@ def generate_markdown_export(report: dict[str, Any]) -> str:
         else:
             lines.append(f"- **Computed Verdict:** **{display_v}** ({conf:.0f}% confidence)")
 
+        if c.get("citation_classification"):
+            lines.append(f"- **Citation Classification:** `{c.get('citation_classification')}`")
+            if c.get("citation_audit", {}).get("explanation"):
+                lines.append(f"- **Citation Diagnostic:** {c['citation_audit']['explanation']}")
+
         if explanation:
             lines.append(f"- **Triage Analysis:** {explanation}")
 
@@ -221,6 +226,7 @@ def generate_html_export(report: dict[str, Any]) -> str:
           <div class="claim-meta">
             <span>Citation: [{citations}]</span>
             <span>Confidence: <strong>{conf:.0f}%</strong> (Tier: {tier})</span>
+            {f'<span class="badge" style="background: rgba(240, 106, 44, 0.15); color: #f06a2c; border: 1px solid rgba(240, 106, 44, 0.3); font-size: 11px;">{html.escape(c.get("citation_classification"))}</span>' if c.get("citation_classification") else ''}
           </div>
           {f'<div class="explanation"><strong>Triage Analysis:</strong> {explanation}</div>' if explanation else ''}
           <div class="quote-container">

@@ -17,6 +17,15 @@ from credence.verify.checks import (
     publication_status_check,
 )
 from credence.verify.llm import GeminiClient, LLMResponse, llm_client
+from credence.verify.misleading_citations import (
+    CitationClassification,
+    MisleadingCitationReport,
+    MisleadingCitationResult,
+    MisleadingSituation,
+    audit_citation,
+    audit_document_citations,
+    compute_topic_overlap,
+)
 from credence.verify.pipeline import build_report, verify_claim
 from credence.verify.retrieve import RetrievedPassage, retrieve_evidence_passages, segment_passages
 from credence.verify.slots import extract_slots
@@ -66,6 +75,13 @@ __all__ = [
     "run_adversarial_pass",
     "verify_claim",
     "build_report",
+    "CitationClassification",
+    "MisleadingSituation",
+    "MisleadingCitationResult",
+    "MisleadingCitationReport",
+    "audit_citation",
+    "audit_document_citations",
+    "compute_topic_overlap",
     "RULE_HALLUCINATED_QUOTE",
     "RULE_INACCESSIBLE_SOURCE",
     "RULE_EMPTY_SLOTS",

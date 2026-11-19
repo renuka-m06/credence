@@ -211,6 +211,8 @@ class Claim:
     slots: list[Slot] = field(default_factory=list)
     slot_results: list[SlotResult] = field(default_factory=list)
     verdict: Optional[Verdict] = None
+    citation_classification: Optional[str] = None
+    citation_audit: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -221,6 +223,8 @@ class Claim:
             "slots": [slot.to_dict() for slot in self.slots],
             "slot_results": [res.to_dict() for res in self.slot_results],
             "verdict": self.verdict.to_dict() if self.verdict else None,
+            "citation_classification": self.citation_classification,
+            "citation_audit": self.citation_audit,
         }
         return data
 
@@ -237,6 +241,8 @@ class Claim:
             slots=slots,
             slot_results=slot_results,
             verdict=verdict,
+            citation_classification=data.get("citation_classification"),
+            citation_audit=data.get("citation_audit"),
         )
 
 
