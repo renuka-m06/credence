@@ -12,6 +12,7 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
+from credence.report.models import AccessTier
 from credence.resolve.reference import Reference
 
 # Optional rapidfuzz import with robust pure-Python fallback
@@ -35,10 +36,28 @@ class CandidatePaper:
     url: Optional[str] = None
     open_access_pdf_url: Optional[str] = None
     is_retracted: bool = False
+    is_corrected: bool = False
+    retraction_details: dict[str, Any] = field(default_factory=dict)
+    correction_details: dict[str, Any] = field(default_factory=dict)
+    publication_type: str = "journal-article"
+    references: list[dict[str, Any]] = field(default_factory=list)
     raw_payload: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def access_tier(self) -> AccessTier:
+        """Derive the access tier from available paper content."""
+        if self.open_access_pdf_url:
+            return AccessTier.FULL_TEXT
+        if self.abstract and len(self.abstract.strip()) >= 30:
+            return AccessTier.ABSTRACT_ONLY
+        if self.title:
+            return AccessTier.METADATA_ONLY
+        return AccessTier.INACCESSIBLE
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["access_tier"] = self.access_tier.value
+        return data
 
 
 @dataclass
@@ -155,6 +174,7 @@ def score_candidate(
     reference: Reference,
     candidate: Optional[CandidatePaper],
     doi_lookup_failed: bool = False,
+    network_error: bool = False,
 ) -> MatchResult:
     """Score a candidate paper against a reference and classify the verification status.
 
@@ -163,12 +183,29 @@ def score_candidate(
       - 'wrong_year': Title and/or DOI matches, but publication year differs by > 1 year
       - 'fake_doi': Reference provided a DOI that does not resolve or conflicts with real record
       - 'fake_title': Reference title has negligible overlap with actual paper / literature
+      - 'inaccessible': Retrieval timed out or network failed; gracefully degraded
       - 'not_found': Reference could not be located in academic databases
     """
     discrepancies: list[str] = []
 
-    # Case 1: Candidate is None (no record found)
+    # Case 1: Candidate is None (no record found or network error)
     if candidate is None:
+        if network_error:
+            discrepancies.append(
+                f"Source retrieval inaccessible: academic database queries timed out or failed; "
+                f"gracefully degrading to inaccessible tier."
+            )
+            return MatchResult(
+                is_match=False,
+                score=0.0,
+                classification="inaccessible",
+                discrepancies=discrepancies,
+                details={
+                    "reason": "network_timeout_or_offline",
+                    "access_tier": AccessTier.INACCESSIBLE.value,
+                }
+            )
+
         if reference.doi and doi_lookup_failed:
             discrepancies.append(f"DOI '{reference.doi}' does not exist in Crossref/OpenAlex/SemanticScholar.")
             return MatchResult(
@@ -176,14 +213,14 @@ def score_candidate(
                 score=0.0,
                 classification="fake_doi",
                 discrepancies=discrepancies,
-                details={"reason": "doi_not_found_in_databases"}
+                details={"reason": "doi_not_found_in_databases", "access_tier": AccessTier.NOT_FOUND.value}
             )
         return MatchResult(
             is_match=False,
             score=0.0,
             classification="not_found",
             discrepancies=["No candidate records found matching query in databases."],
-            details={"reason": "no_results_returned"}
+            details={"reason": "no_results_returned", "access_tier": AccessTier.NOT_FOUND.value}
         )
 
     # Compute component scores
@@ -226,11 +263,21 @@ def score_candidate(
             candidate=candidate,
         )
 
-    # 2. Fake Title: Extremely low title similarity (< 0.45)
+    # 2. Fake Title / DOI Mismatch: Extremely low title similarity (< 0.45)
     if title_score < TITLE_MISMATCH_THRESHOLD:
-        discrepancies.append(
-            f"Title mismatch: reference title '{reference.title}' does not match candidate title '{candidate.title}' (similarity {title_score:.2f})"
-        )
+        if reference.doi:
+            mismatch_msg = (
+                f"DOI mismatch: cited DOI '{reference.doi}' resolves to '{candidate.title}' "
+                f"which does not match cited title '{reference.title}' (similarity {title_score:.2f})"
+            )
+            doi_mismatch_flag = True
+        else:
+            mismatch_msg = (
+                f"Title mismatch: reference title '{reference.title}' does not match candidate title '{candidate.title}' (similarity {title_score:.2f})"
+            )
+            doi_mismatch_flag = False
+
+        discrepancies.append(mismatch_msg)
         return MatchResult(
             is_match=False,
             score=round(title_score, 4),
@@ -241,6 +288,7 @@ def score_candidate(
             doi_score=doi_score,
             discrepancies=discrepancies,
             candidate=candidate,
+            details={"doi_mismatch": doi_mismatch_flag, "reason": mismatch_msg},
         )
 
     # 3. Wrong Year: Title matches well (>= 0.70) or DOI matches, but year differs significantly
@@ -271,6 +319,12 @@ def score_candidate(
     if not is_match:
         discrepancies.append(f"Overall match score {overall_score:.2f} below threshold {VALID_MATCH_THRESHOLD:.2f}")
 
+    # Note retractions and corrections in discrepancies if matched
+    if candidate.is_retracted:
+        discrepancies.append(f"Retraction notice: candidate paper has been retracted (source: {candidate.source}).")
+    if candidate.is_corrected:
+        discrepancies.append(f"Correction notice: candidate paper has a formal erratum/correction (source: {candidate.source}).")
+
     return MatchResult(
         is_match=is_match,
         score=overall_score,
@@ -281,4 +335,34 @@ def score_candidate(
         doi_score=doi_score,
         discrepancies=discrepancies,
         candidate=candidate,
+        details={
+            "is_retracted": candidate.is_retracted,
+            "is_corrected": candidate.is_corrected,
+            "retraction_details": candidate.retraction_details,
+            "correction_details": candidate.correction_details,
+            "publication_type": candidate.publication_type,
+            "access_tier": candidate.access_tier.value,
+        },
     )
+
+
+def check_doi_mismatch(
+    reference: Reference,
+    candidate: Optional[CandidatePaper],
+    threshold: float = TITLE_MISMATCH_THRESHOLD,
+) -> tuple[bool, Optional[str]]:
+    """Determine whether a cited DOI resolved to a paper with a mismatched title.
+
+    Returns:
+        (is_mismatch, reason_string)
+    """
+    if not reference or not reference.doi or not candidate or not candidate.title:
+        return False, None
+
+    sim = compute_title_similarity(reference.title, candidate.title)
+    if sim < threshold:
+        return True, (
+            f"DOI mismatch: cited DOI '{reference.doi}' resolves to '{candidate.title}' "
+            f"which differs from cited title '{reference.title}' (similarity: {sim:.2f})"
+        )
+    return False, None

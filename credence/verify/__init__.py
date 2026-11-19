@@ -3,10 +3,15 @@
 from credence.verify.adversarial import AdversarialResult, run_adversarial_pass
 from credence.verify.checks import (
     CheckResult,
+    correction_check,
+    doi_mismatch_check,
     hedge_check,
     normalize_text,
     number_check,
+    polarity_check,
     quote_check,
+    retraction_check,
+    secondary_source_check,
     strip_outer_quotes,
 )
 from credence.verify.llm import GeminiClient, LLMResponse, llm_client
@@ -23,9 +28,11 @@ from credence.verify.verdict import (
     RULE_INACCESSIBLE_SOURCE,
     RULE_OUTDATED_CITATION,
     RULE_PARTIAL_MATCH,
+    RULE_UNGROUNDED_OUTDATED_REJECTED,
     SlotStatus,
     compute_confidence,
     determine_verdict,
+    validate_outdated_evidence,
 )
 
 __all__ = [
@@ -33,10 +40,16 @@ __all__ = [
     "quote_check",
     "number_check",
     "hedge_check",
+    "polarity_check",
+    "doi_mismatch_check",
+    "retraction_check",
+    "correction_check",
+    "secondary_source_check",
     "normalize_text",
     "strip_outer_quotes",
     "SlotStatus",
     "determine_verdict",
+    "validate_outdated_evidence",
     "compute_confidence",
     "extract_slots",
     "RetrievedPassage",
@@ -53,6 +66,7 @@ __all__ = [
     "RULE_INACCESSIBLE_SOURCE",
     "RULE_EMPTY_SLOTS",
     "RULE_OUTDATED_CITATION",
+    "RULE_UNGROUNDED_OUTDATED_REJECTED",
     "RULE_CONTRADICTORY",
     "RULE_ALL_MATCH",
     "RULE_PARTIAL_MATCH",

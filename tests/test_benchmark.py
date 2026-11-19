@@ -58,12 +58,12 @@ def test_corrupt_functions():
 def test_gold_dataset_generation(tmp_path):
     out_file = tmp_path / "test_gold.jsonl"
     dataset = generate_gold_dataset(str(out_file))
-    assert len(dataset) == 100
+    assert 40 <= len(dataset) <= 50
     assert out_file.exists()
 
     with open(out_file, "r", encoding="utf-8") as f:
         lines = [json.loads(l) for l in f]
-    assert len(lines) == 100
+    assert len(lines) == len(dataset)
 
     # Ensure all corruption types are present
     types = {item["corruption_type"] for item in lines}

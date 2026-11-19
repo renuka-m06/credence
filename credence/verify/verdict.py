@@ -106,6 +106,7 @@ RULE_HALLUCINATED_QUOTE = "RULE_HALLUCINATED_QUOTE"
 RULE_INACCESSIBLE_SOURCE = "RULE_INACCESSIBLE_SOURCE"
 RULE_EMPTY_SLOTS = "RULE_EMPTY_SLOTS"
 RULE_OUTDATED_CITATION = "RULE_OUTDATED_CITATION"
+RULE_UNGROUNDED_OUTDATED_REJECTED = "RULE_UNGROUNDED_OUTDATED_REJECTED"
 RULE_CONTRADICTORY = "RULE_CONTRADICTORY"
 RULE_ALL_MATCH = "RULE_ALL_MATCH"
 RULE_PARTIAL_MATCH = "RULE_PARTIAL_MATCH"
@@ -113,10 +114,64 @@ RULE_ALL_ABSENT = "RULE_ALL_ABSENT"
 RULE_DEFAULT_REVIEW = "RULE_DEFAULT_REVIEW"
 
 
+def validate_outdated_evidence(
+    is_outdated: bool = False,
+    outdated_evidence: Optional[Union[dict[str, Any], list[Any], str]] = None,
+) -> tuple[bool, str]:
+    """Validate whether an outdated citation status is grounded in concrete listed evidence.
+
+    Rule: Add the 'potentially outdated' verdict ONLY when there is listed evidence
+    (a retraction or a later contradicting study), never an ungrounded guess.
+
+    Returns:
+        (is_grounded, evidence_summary)
+    """
+    if not is_outdated and not outdated_evidence:
+        return False, ""
+
+    if outdated_evidence is None:
+        # Bare boolean without listed evidence -> rejected as ungrounded guess
+        return False, ""
+
+    if isinstance(outdated_evidence, dict):
+        if not outdated_evidence:
+            return False, ""
+        # Check for retraction evidence
+        if outdated_evidence.get("is_retracted") or "retraction" in outdated_evidence or "retraction_details" in outdated_evidence:
+            details = outdated_evidence.get("retraction") or outdated_evidence.get("retraction_details") or "Notice on file"
+            return True, f"formal retraction notice ({details})"
+        # Check for later contradicting study
+        if "contradicting_study" in outdated_evidence or "later_study" in outdated_evidence or "superseded_by" in outdated_evidence:
+            study = outdated_evidence.get("contradicting_study") or outdated_evidence.get("later_study") or outdated_evidence.get("superseded_by")
+            return True, f"later contradicting study ({study})"
+        return False, ""
+
+    if isinstance(outdated_evidence, list):
+        if not outdated_evidence:
+            return False, ""
+        items_str = "; ".join(str(x) for x in outdated_evidence)
+        items_lower = items_str.lower()
+        if any(kw in items_lower for kw in ("retract", "contradict", "supersed")):
+            return True, items_str
+        return False, ""
+
+    if isinstance(outdated_evidence, str):
+        ev_clean = outdated_evidence.strip()
+        ev_lower = ev_clean.lower()
+        if not ev_clean:
+            return False, ""
+        if any(kw in ev_lower for kw in ("retract", "contradict", "supersed")):
+            return True, ev_clean
+        return False, ""
+
+    return False, ""
+
+
 def determine_verdict(
     slots: Sequence[Union[SlotStatus, str, SlotResult]],
     claim_id: str = "",
     is_outdated: bool = False,
+    outdated_evidence: Optional[Union[dict[str, Any], list[Any], str]] = None,
     access_tier: Union[AccessTier, str] = AccessTier.FULL_TEXT,
     has_hallucinated_quote: bool = False,
     pass_disagreement: Union[bool, int, float] = False,
@@ -193,8 +248,9 @@ def determine_verdict(
             access_tier=tier,
         )
 
-    # Potentially outdated citation
-    if is_outdated:
+    # Grounded Potentially Outdated citation check (Golden Rule: requires listed evidence)
+    is_grounded_outdated, evidence_summary = validate_outdated_evidence(is_outdated, outdated_evidence)
+    if is_grounded_outdated:
         rules_triggered.append(RULE_OUTDATED_CITATION)
         num_absent = sum(1 for s in slots if SlotStatus.from_value(s) == SlotStatus.ABSENT)
         conf = compute_confidence(
@@ -208,12 +264,15 @@ def determine_verdict(
             claim_id=claim_id,
             verdict=VerdictType.POTENTIALLY_OUTDATED,
             confidence=conf,
-            explanation="Potentially outdated: cited finding has been superseded, retracted, or updated by subsequent literature.",
+            explanation=f"Potentially outdated: cited finding is backed by evidence of {evidence_summary}.",
             unverified_slots=num_absent,
             contradiction_detected=False,
             rules_triggered=rules_triggered,
             access_tier=tier,
         )
+    elif is_outdated and not is_grounded_outdated:
+        # Ungrounded guess: do NOT assign POTENTIALLY_OUTDATED, record rule and continue to deterministic slot evaluation
+        rules_triggered.append(RULE_UNGROUNDED_OUTDATED_REJECTED)
 
     # Parse and categorize slot statuses
     norm_slots = [SlotStatus.from_value(s) for s in slots]
@@ -232,10 +291,12 @@ def determine_verdict(
     # Fixed Rule Table Mapping
     if num_mismatches > 0:
         rules_triggered.append(RULE_CONTRADICTORY)
+        # Direct contradiction severely degrades empirical support confidence (e.g. 0.35)
+        contra_conf = max(0.0, round(conf - (num_mismatches * 0.35), 4))
         return Verdict(
             claim_id=claim_id,
             verdict=VerdictType.CONTRADICTORY,
-            confidence=conf,
+            confidence=contra_conf,
             explanation=(
                 f"Contradictory: {num_mismatches} slot(s) directly conflict with cited source "
                 f"(matched: {num_matches}, absent: {num_absent})."
@@ -277,10 +338,12 @@ def determine_verdict(
 
     if num_absent == len(norm_slots):
         rules_triggered.append(RULE_ALL_ABSENT)
+        # Total absence of asserted slots implies low empirical evidence support
+        unsupp_conf = max(0.0, round(min(0.15, conf * 0.20), 4))
         return Verdict(
             claim_id=claim_id,
             verdict=VerdictType.UNSUPPORTED,
-            confidence=conf,
+            confidence=unsupp_conf,
             explanation="Unsupported: cited source was retrieved but none of the asserted slots were found in text.",
             unverified_slots=num_absent,
             contradiction_detected=False,

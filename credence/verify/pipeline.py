@@ -7,7 +7,15 @@ from typing import Any, Optional, Union
 
 from credence.report.models import AccessTier, Claim, Report, Slot, SlotResult, Verdict, VerdictType
 from credence.verify.adversarial import run_adversarial_pass
-from credence.verify.checks import hedge_check, number_check, polarity_check, quote_check
+from credence.verify.checks import (
+    doi_mismatch_check,
+    hedge_check,
+    number_check,
+    polarity_check,
+    quote_check,
+    retraction_check,
+    secondary_source_check,
+)
 from credence.verify.retrieve import retrieve_evidence_passages
 from credence.verify.slots import extract_slots
 from credence.verify.verdict import SlotStatus, determine_verdict
@@ -15,22 +23,45 @@ from credence.verify.verdict import SlotStatus, determine_verdict
 
 def verify_claim(
     claim_input: Union[Claim, str],
-    source_text: str,
-    access_tier: AccessTier = AccessTier.FULL_TEXT,
+    source_text: str = "",
+    access_tier: Optional[Union[AccessTier, str]] = None,
     is_outdated: bool = False,
+    outdated_evidence: Optional[Union[dict[str, Any], list[Any], str]] = None,
+    candidate_paper: Optional[Any] = None,
     citation_key: str = "4",
     llm_client: Optional[Any] = None,
     simulated_hallucinated_quote: Optional[str] = None,
+    resolver: Optional[Any] = None,
 ) -> Claim:
     """Execute complete verification pipeline for an individual claim against its cited source.
 
     Steps:
     1. Atomize claim into verifiable slots (finding, number, quote)
-    2. Primary retrieval pass (BM25 + embeddings + number-regex reranking)
-    3. Primary deterministic verification (quote_check, number_check, hedge_check)
-    4. Adversarial second pass hunting for contradictions and methodological limitations
-    5. Final verdict calculation via fixed rule table and computed confidence
+    2. Reference integrity check (retraction status, secondary-source hop)
+    3. Primary retrieval pass (BM25 + embeddings + number-regex reranking)
+    4. Primary deterministic verification (quote_check, number_check, hedge_check)
+    5. Adversarial second pass hunting for contradictions and methodological limitations
+    6. Final verdict calculation via fixed rule table and computed confidence
     """
+    # Determine effective access tier with graceful degradation
+    if access_tier is not None:
+        effective_tier = AccessTier.from_str(access_tier) if isinstance(access_tier, str) else access_tier
+    elif candidate_paper is not None:
+        effective_tier = getattr(candidate_paper, "access_tier", AccessTier.FULL_TEXT)
+    elif not source_text or not source_text.strip():
+        effective_tier = AccessTier.INACCESSIBLE
+    elif len(source_text.strip()) < 350 and ("abstract" in source_text.lower() or "background" in source_text.lower()):
+        effective_tier = AccessTier.ABSTRACT_ONLY
+    else:
+        effective_tier = AccessTier.FULL_TEXT
+
+    # If source_text is empty, populate from candidate paper abstract or metadata proxy
+    if not source_text.strip() and candidate_paper is not None:
+        if getattr(candidate_paper, "abstract", None):
+            source_text = candidate_paper.abstract
+        elif getattr(candidate_paper, "title", None):
+            source_text = f"{candidate_paper.title}. {candidate_paper.journal or ''} {candidate_paper.year or ''}."
+
     # 1. Structure Claim and extract slots
     if isinstance(claim_input, str):
         claim_id = "claim-1"
@@ -52,16 +83,45 @@ def verify_claim(
                 llm_client=llm_client,
             )
 
+    # 2. Check candidate paper integrity (retraction & secondary source 1-hop traversal)
+    primary_hop_info: Optional[dict[str, Any]] = None
+    if candidate_paper is not None:
+        # Check retraction
+        ret_res = retraction_check(candidate_paper)
+        if not ret_res.passed:
+            is_outdated = True
+            outdated_evidence = outdated_evidence or {
+                "is_retracted": True,
+                "retraction": getattr(candidate_paper, "retraction_details", {}) or ret_res.reason
+            }
+
+        # Check secondary source (review/survey)
+        sec_res = secondary_source_check(candidate_paper)
+        if not sec_res.passed:
+            # Attempt 1 citation hop to original source
+            if resolver is not None and hasattr(resolver, "follow_citation_hop"):
+                hop_paper = resolver.follow_citation_hop(candidate_paper, claim.text)
+                if hop_paper:
+                    primary_hop_info = {
+                        "original_title": hop_paper.title,
+                        "original_doi": hop_paper.doi,
+                        "original_source": hop_paper.source,
+                    }
+                    # Augment source text with original paper text or abstract if available
+                    if hop_paper.abstract:
+                        source_text = f"{source_text}\n\n[Original Source: {hop_paper.title}]\n{hop_paper.abstract}"
+
     slot_results: list[SlotResult] = []
 
-    # 2. Primary evidence retrieval and verification
+    # 3. Primary evidence retrieval and verification
     for slot in claim.slots:
         passages = retrieve_evidence_passages(slot.expected_value or claim.text, source_text, top_k=3)
         best_passage = passages[0].text if passages else ""
 
         # Perform checks
+        target_num_text = slot.expected_value if (slot.field_type in ("number", "quantity") and slot.expected_value and any(c.isdigit() for c in slot.expected_value)) else claim.text
         q_res = quote_check(best_passage, source_text) if best_passage else None
-        n_res = number_check(claim.text, best_passage) if best_passage else None
+        n_res = number_check(target_num_text, best_passage) if best_passage else None
         h_res = hedge_check(claim.text, best_passage) if best_passage else None
         p_res = polarity_check(claim.text, best_passage) if best_passage else None
 
@@ -111,7 +171,7 @@ def verify_claim(
             number_match=n_res.passed if n_res else None,
             hedge_match=h_res.passed if h_res else None,
             status=status,
-            access_tier=access_tier,
+            access_tier=effective_tier,
             details={"retrieval_score": retrieval_score},
         ))
 
@@ -128,7 +188,7 @@ def verify_claim(
             quote_verified=q_sim.passed,
             quote_span=q_sim.details.get("span") if q_sim.passed else None,
             status="match" if q_sim.passed else "absent",
-            access_tier=access_tier,
+            access_tier=effective_tier,
             details={"hallucination_tested": True, "caught_by_code": not q_sim.passed},
         ))
 
@@ -141,10 +201,17 @@ def verify_claim(
         slots=final_slot_results,
         claim_id=claim.id,
         is_outdated=is_outdated,
-        access_tier=access_tier,
+        outdated_evidence=outdated_evidence,
+        access_tier=effective_tier,
         has_hallucinated_quote=has_hallucinated,
         pass_disagreement=adv_res.pass_disagreement,
     )
+
+    # Attach secondary source hop details if traversed
+    if primary_hop_info:
+        for sr in claim.slot_results:
+            sr.details["primary_source_hop"] = primary_hop_info
+        verdict.explanation += f" (Secondary source review resolved to primary empirical study: {primary_hop_info.get('original_title')})"
 
     # If adversarial pass found contradiction/caveat but partial finding was supported:
     # Set clear explanation and human-review stance
@@ -158,11 +225,18 @@ def verify_claim(
 def build_report(
     document_name: str,
     claims: list[Claim],
-    access_tier: AccessTier = AccessTier.FULL_TEXT,
+    access_tier: Optional[AccessTier] = None,
     metadata: Optional[dict[str, Any]] = None,
 ) -> Report:
     """Wire verified claims into a comprehensive human-reviewable Report."""
     total = len(claims)
+    if access_tier is None:
+        if claims:
+            tiers = [c.verdict.access_tier for c in claims if c.verdict]
+            # Use most common or first tier
+            access_tier = tiers[0] if tiers else AccessTier.FULL_TEXT
+        else:
+            access_tier = AccessTier.FULL_TEXT
     supported_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.SUPPORTED)
     partial_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.PARTIALLY_SUPPORTED)
     unsupported_cnt = sum(1 for c in claims if c.verdict and c.verdict.verdict == VerdictType.UNSUPPORTED)

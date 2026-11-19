@@ -101,14 +101,26 @@ def normalize_verdict_str(v_str: str) -> str:
     return "needs review"
 
 
-def evaluate_benchmark(dataset_path: str = "gold_set.jsonl") -> BenchmarkReport:
+def evaluate_benchmark(dataset_path: Optional[str] = None) -> BenchmarkReport:
     """Execute full benchmark evaluation across gold standard claims."""
-    path = Path(dataset_path)
-    if not path.exists():
-        # Fallback to data/gold_set.jsonl
-        path = Path("data") / "gold_set.jsonl"
-    if not path.exists():
-        raise FileNotFoundError(f"Gold benchmark set not found at {dataset_path} or data/gold_set.jsonl")
+    path: Optional[Path] = None
+    if dataset_path:
+        p = Path(dataset_path)
+        if p.exists():
+            path = p
+
+    if not path:
+        for candidate in [
+            Path("tests/fixtures/gold_set.jsonl"),
+            Path("gold_set.jsonl"),
+            Path("data/gold_set.jsonl"),
+        ]:
+            if candidate.exists():
+                path = candidate
+                break
+
+    if not path or not path.exists():
+        raise FileNotFoundError(f"Gold benchmark set not found at {dataset_path} or tests/fixtures/gold_set.jsonl or gold_set.jsonl")
 
     samples: list[dict[str, Any]] = []
     with open(path, "r", encoding="utf-8") as f:
@@ -331,7 +343,7 @@ def print_benchmark_report(report: BenchmarkReport) -> None:
 
 
 def main() -> None:
-    dataset_file = sys.argv[1] if len(sys.argv) > 1 else "gold_set.jsonl"
+    dataset_file = sys.argv[1] if len(sys.argv) > 1 else None
     report = evaluate_benchmark(dataset_file)
     print_benchmark_report(report)
 
