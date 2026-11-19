@@ -82,6 +82,16 @@ def _generate_demo_report() -> dict[str, Any]:
     )
     c1.id = "claim-1"
     c1.source_location = "Results, page 2"
+    c1.page_number = 2
+    c1.section_name = "Results"
+    c1.paper_title = "Educational Software Interventions in Higher Education"
+    c1.doi = "10.1145/3065386"
+    for sr in c1.slot_results:
+        sr.source_title = c1.paper_title
+        sr.source_doi = c1.doi
+        sr.page_number = 2
+        sr.section_name = "Results"
+        sr.source_location = "Results, page 2"
 
     # Claim 2: Cardioprotective therapy (Supported)
     c2 = verify_claim(
@@ -96,6 +106,16 @@ def _generate_demo_report() -> dict[str, Any]:
     )
     c2.id = "claim-2"
     c2.source_location = "Results, page 3"
+    c2.page_number = 3
+    c2.section_name = "Results"
+    c2.paper_title = "Randomized Evaluation of Compound-X in Acute Cardiovascular Syndromes"
+    c2.doi = "10.1056/NEJMoa1702345"
+    for sr in c2.slot_results:
+        sr.source_title = c2.paper_title
+        sr.source_doi = c2.doi
+        sr.page_number = 3
+        sr.section_name = "Results"
+        sr.source_location = "Results, page 3"
 
     # Claim 3: Fabricated survival claim (Unsupported / Contradictory)
     c3 = verify_claim(
@@ -108,6 +128,16 @@ def _generate_demo_report() -> dict[str, Any]:
     )
     c3.id = "claim-3"
     c3.source_location = "Discussion, page 4"
+    c3.page_number = 4
+    c3.section_name = "Discussion"
+    c3.paper_title = "Multi-Center Cohort Surveillance of Cardioprotective Therapies"
+    c3.doi = "10.1016/S0140-6736(18)30123-X"
+    for sr in c3.slot_results:
+        sr.source_title = c3.paper_title
+        sr.source_doi = c3.doi
+        sr.page_number = 4
+        sr.section_name = "Discussion"
+        sr.source_location = "Discussion, page 4"
 
     report = build_report(
         document_name="sample_paper.pdf",
@@ -183,7 +213,18 @@ async def verify_document(
         claims: list[Claim] = []
         for sec in parsed_doc.sections:
             if sec.title.lower() not in ("references", "bibliography", "header / metadata"):
-                claims.extend(extract_claims(sec.content, section_name=sec.title))
+                sec_claims = extract_claims(sec.content, section_name=sec.title)
+                for sc in sec_claims:
+                    sc.section_name = sec.title
+                    if parsed_doc.file_type == "docx":
+                        sc.paragraph_number = sec.paragraph_start
+                        sc.page_number = None
+                        sc.source_location = f"{sec.title}, Paragraph {sec.paragraph_start}" if sec.paragraph_start else sec.title
+                    else:
+                        sc.page_number = sec.page_start
+                        sc.paragraph_number = None
+                        sc.source_location = f"{sec.title}, page {sec.page_start}" if sec.page_start else sec.title
+                claims.extend(sec_claims)
 
         if not claims:
             # Fallback to full body claim extraction
@@ -214,7 +255,13 @@ async def verify_document(
                     access_tier = AccessTier.INACCESSIBLE
                 source_text = parsed_doc.text
 
-            v_cl = verify_claim(cl, source_text=source_text, access_tier=access_tier, citation_key=ref_key)
+            v_cl = verify_claim(
+                cl,
+                source_text=source_text,
+                access_tier=access_tier,
+                citation_key=ref_key,
+                candidate_paper=ref_entry,
+            )
             verified_claims.append(v_cl)
 
         report = build_report(

@@ -205,3 +205,87 @@ def export_report_endpoint(
             status_code=400,
             detail=f"Unsupported export format '{format}'. Supported formats: html, markdown, md, json.",
         )
+
+
+@router.get("/report/{report_id}/claims/{claim_id}/source")
+@router.get("/claims/{claim_id}/source")
+def inspect_source_evidence(claim_id: str, report_id: Optional[str] = None) -> dict[str, Any]:
+    """Retrieve full source paper context, section, page/paragraph, and highlighted evidence (Requirement 5)."""
+    import credence.server as srv
+    clean_cid = str(claim_id or "").strip()
+    target_report = None
+    target_claim = None
+
+    if report_id:
+        target_report = srv.REPORTS_STORE.get(report_id)
+
+    if not target_report:
+        for rep in srv.REPORTS_STORE.values():
+            for c in rep.get("claims", []):
+                if c.get("id") == clean_cid:
+                    target_report = rep
+                    target_claim = c
+                    break
+            if target_claim:
+                break
+
+    if not target_claim and target_report:
+        target_claim = next((c for c in target_report.get("claims", []) if c.get("id") == clean_cid), None)
+
+    if not target_claim:
+        # Fallback to demo report
+        demo_rep = srv.REPORTS_STORE.get("demo-report-1") or srv._generate_demo_report()
+        target_claim = next((c for c in demo_rep.get("claims", []) if c.get("id") == clean_cid), None)
+        target_report = demo_rep
+
+    if not target_claim:
+        raise HTTPException(status_code=404, detail=f"Claim '{clean_cid}' not found.")
+
+    slot_results = target_claim.get("slot_results", [])
+    verified_sr = next((r for r in slot_results if r.get("quote_verified")), None)
+    best_sr = verified_sr or (slot_results[0] if slot_results else {})
+
+    quote_text = best_sr.get("quote") or target_claim.get("exact_quotation") or ""
+    is_verified = bool(best_sr.get("quote_verified", False))
+
+    paper_title = (
+        best_sr.get("source_title")
+        or target_claim.get("paper_title")
+        or (f"Cited Publication for [{target_claim.get('citation_keys', ['1'])[0] if target_claim.get('citation_keys') else '1'}]")
+    )
+    doi = best_sr.get("source_doi") or target_claim.get("doi")
+    page_num = best_sr.get("page_number") or target_claim.get("page_number")
+    sec_name = best_sr.get("section_name") or target_claim.get("section_name") or "Results"
+    para_num = best_sr.get("paragraph_number") or target_claim.get("paragraph_number")
+    src_loc = best_sr.get("source_location") or target_claim.get("source_location")
+
+    verdict_info = target_claim.get("verdict", {})
+    verdict_display = verdict_info.get("display_verdict") or verdict_info.get("verdict") or "Needs review"
+
+    # Generate source context with evidence highlight (Golden Rule 8: only confirm if code-verified)
+    if is_verified and quote_text:
+        highlighted = f"<mark class=\"evidence-highlight\" id=\"source-evidence-anchor\">{quote_text}</mark>"
+    elif quote_text:
+        highlighted = f"<span class=\"unverified-evidence\" id=\"source-evidence-anchor\">{quote_text}</span>"
+    else:
+        highlighted = "<span class=\"missing-evidence\">Source inaccessible: verbatim proof pending manual triage.</span>"
+
+    return {
+        "status": "ok",
+        "claim_id": clean_cid,
+        "claim_text": target_claim.get("text", ""),
+        "paper_title": paper_title,
+        "doi": doi,
+        "source_url": best_sr.get("source_url") or (f"https://doi.org/{doi}" if doi else None),
+        "page_number": page_num,
+        "section_name": sec_name,
+        "paragraph_number": para_num,
+        "source_location": src_loc,
+        "is_docx": para_num is not None and page_num is None,
+        "exact_quotation": quote_text,
+        "quote_verified": is_verified,
+        "quote_span": best_sr.get("quote_span"),
+        "verdict": verdict_display,
+        "evidence_highlight": highlighted,
+        "source_context": f"Section [{sec_name}]: {quote_text}",
+    }

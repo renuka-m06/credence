@@ -166,6 +166,13 @@ class SlotResult:
     source_doi: Optional[str] = None
     source_title: Optional[str] = None
     source_url: Optional[str] = None
+    page_number: Optional[int] = None
+    section_name: Optional[str] = None
+    paragraph_number: Optional[int] = None
+    source_location: Optional[str] = None
+    exact_quotation: Optional[str] = None
+    claim_text: Optional[str] = None
+    evidence_highlight: Optional[str] = None
     access_tier: AccessTier = AccessTier.NOT_FOUND
     details: dict[str, Any] = field(default_factory=dict)
 
@@ -196,6 +203,13 @@ class SlotResult:
             source_doi=data.get("source_doi"),
             source_title=data.get("source_title"),
             source_url=data.get("source_url"),
+            page_number=data.get("page_number"),
+            section_name=data.get("section_name"),
+            paragraph_number=data.get("paragraph_number"),
+            source_location=data.get("source_location"),
+            exact_quotation=data.get("exact_quotation"),
+            claim_text=data.get("claim_text"),
+            evidence_highlight=data.get("evidence_highlight"),
             access_tier=tier,
             details=data.get("details", {}),
         )
@@ -207,7 +221,14 @@ class Claim:
     id: str
     text: str
     citation_keys: list[str] = field(default_factory=list)
-    source_location: str = ""  # e.g., page 3, section 2.1
+    source_location: str = ""  # e.g., page 3, section 2.1 or Results, Paragraph 4
+    page_number: Optional[int] = None
+    section_name: Optional[str] = None
+    paragraph_number: Optional[int] = None
+    paper_title: Optional[str] = None
+    doi: Optional[str] = None
+    exact_quotation: Optional[str] = None
+    evidence_highlight: Optional[str] = None
     slots: list[Slot] = field(default_factory=list)
     slot_results: list[SlotResult] = field(default_factory=list)
     verdict: Optional[Verdict] = None
@@ -220,6 +241,13 @@ class Claim:
             "text": self.text,
             "citation_keys": list(self.citation_keys),
             "source_location": self.source_location,
+            "page_number": self.page_number,
+            "section_name": self.section_name,
+            "paragraph_number": self.paragraph_number,
+            "paper_title": self.paper_title,
+            "doi": self.doi,
+            "exact_quotation": self.exact_quotation,
+            "evidence_highlight": self.evidence_highlight,
             "slots": [slot.to_dict() for slot in self.slots],
             "slot_results": [res.to_dict() for res in self.slot_results],
             "verdict": self.verdict.to_dict() if self.verdict else None,
@@ -238,6 +266,13 @@ class Claim:
             text=data.get("text", ""),
             citation_keys=list(data.get("citation_keys", [])),
             source_location=data.get("source_location", ""),
+            page_number=data.get("page_number"),
+            section_name=data.get("section_name"),
+            paragraph_number=data.get("paragraph_number"),
+            paper_title=data.get("paper_title"),
+            doi=data.get("doi"),
+            exact_quotation=data.get("exact_quotation"),
+            evidence_highlight=data.get("evidence_highlight"),
             slots=slots,
             slot_results=slot_results,
             verdict=verdict,

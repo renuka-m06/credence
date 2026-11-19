@@ -97,16 +97,32 @@ def generate_markdown_export(report: dict[str, Any]) -> str:
                 lines.append(f"| `{sid}` | {ftype} | {exp} | {status} |")
             lines.append("")
 
-        # Verified Quote
+        # Verified Quote & Traceability (Golden Rule 8)
         verified_quote = next((r for r in slot_results if r.get("quote_verified")), None) or (slot_results[0] if slot_results else None)
         if verified_quote and verified_quote.get("quote"):
+            is_v = verified_quote.get("quote_verified", False)
+            title = verified_quote.get("source_title") or c.get("paper_title") or "Source Paper"
+            doi = verified_quote.get("source_doi") or c.get("doi") or "N/A"
+            sec = verified_quote.get("section_name") or c.get("section_name") or "Results"
+            pg = verified_quote.get("page_number") or c.get("page_number")
+            para = verified_quote.get("paragraph_number") or c.get("paragraph_number")
+            loc_str = f"Page {pg}" if pg else (f"Paragraph {para}" if para else "N/A")
             span_str = f"span: {verified_quote.get('quote_span')}" if verified_quote.get("quote_span") else ""
-            lines.extend([
-                "#### Code-Verified Verbatim Source Quote",
-                f"> \"{verified_quote.get('quote')}\"",
-                f"> — *{span_str}*",
-                "",
-            ])
+
+            if is_v:
+                lines.extend([
+                    "#### Code-Verified Verbatim Source Quote",
+                    f"> \"{verified_quote.get('quote')}\"",
+                    f"> — *Source: {title} | DOI: {doi} | Section: {sec} | {loc_str} | {span_str}*",
+                    "",
+                ])
+            else:
+                lines.extend([
+                    "#### Unverified Candidate Quote (Proof Pending Manual Review)",
+                    f"> \"{verified_quote.get('quote')}\"",
+                    f"> — *Status: Unverified by code check (Golden Rule 8) | Source: {title} | DOI: {doi}*",
+                    "",
+                ])
 
         # Reviews
         reviews = c.get("reviews", [])
@@ -185,10 +201,24 @@ def generate_html_export(report: dict[str, Any]) -> str:
             </div>
             """
 
-        # Quote
+        # Quote & Source Traceability
         verified_quote = next((r for r in slot_results if r.get("quote_verified")), None) or (slot_results[0] if slot_results else None)
         quote_text = html.escape(str(verified_quote.get("quote", ""))) if verified_quote else "No verbatim quote recorded."
         span = html.escape(str(verified_quote.get("quote_span", ""))) if verified_quote else ""
+        is_quote_v = bool(verified_quote and verified_quote.get("quote_verified"))
+        q_title = html.escape(str(verified_quote.get("source_title") or c.get("paper_title") or "Source Paper")) if verified_quote else "Source Paper"
+        q_doi = html.escape(str(verified_quote.get("source_doi") or c.get("doi") or "N/A")) if verified_quote else "N/A"
+        q_sec = html.escape(str(verified_quote.get("section_name") or c.get("section_name") or "Results")) if verified_quote else "Results"
+        q_pg = verified_quote.get("page_number") or c.get("page_number") if verified_quote else None
+        q_para = verified_quote.get("paragraph_number") or c.get("paragraph_number") if verified_quote else None
+        loc_display = f"Page {q_pg}" if q_pg else (f"Paragraph {q_para}" if q_para else "Manuscript")
+
+        if is_quote_v:
+            quote_header_html = f"🛡️ CODE-VERIFIED VERBATIM SOURCE QUOTE {f'<span class=\"span-info\">Span: {span}</span>' if span else ''}"
+            quote_footer_html = f"<div style=\"font-size: 11px; color: #5fcf6a; margin-top: 8px;\">✓ Verified in {q_title} (DOI: {q_doi}) · {q_sec}, {loc_display}</div>"
+        else:
+            quote_header_html = "⚠️ UNVERIFIED CANDIDATE QUOTE (PROOF PENDING MANUAL REVIEW)"
+            quote_footer_html = f"<div style=\"font-size: 11px; color: #ef6b6b; margin-top: 8px;\">⚠️ Unverified by deterministic quote_check() · Source: {q_title} (DOI: {q_doi})</div>"
 
         # Reviews
         reviews = c.get("reviews", [])
@@ -230,8 +260,9 @@ def generate_html_export(report: dict[str, Any]) -> str:
           </div>
           {f'<div class="explanation"><strong>Triage Analysis:</strong> {explanation}</div>' if explanation else ''}
           <div class="quote-container">
-            <div class="quote-header">🛡️ CODE-VERIFIED VERBATIM SOURCE QUOTE {f'<span class="span-info">Span: {span}</span>' if span else ''}</div>
+            <div class="quote-header">{quote_header_html}</div>
             <div class="quote-body">"{quote_text}"</div>
+            {quote_footer_html}
           </div>
           {slots_table_html}
           {review_html}
