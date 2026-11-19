@@ -249,3 +249,125 @@ h1, h2, h3, .serif-heading {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* Audit Ledger View */
+.audit-ledger-box {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.audit-entry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.audit-badge-accept {
+  color: var(--supported-color);
+  background: var(--supported-bg);
+  border: 1px solid rgba(95, 207, 106, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.audit-badge-override {
+  color: var(--partial-color);
+  background: var(--partial-bg);
+  border: 1px solid rgba(227, 169, 58, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.audit-badge-comment {
+  color: var(--needs-review-color);
+  background: var(--needs-review-bg);
+  border: 1px solid rgba(90, 169, 240, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Animations for Upload & Loading states */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-progress {
+  0% { opacity: 0.7; transform: scaleX(0.98); }
+  50% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0.7; transform: scaleX(0.98); }
+}
+
+.spinner-glow {
+  animation: spin 0.9s linear infinite;
+}
+
+.progress-bar-animated {
+  animation: pulse-progress 1.5s ease-in-out infinite;
+  transform-origin: left;
+}
+
+.inaccessible-banner {
+  background: rgba(90, 169, 240, 0.08);
+  border: 1px solid rgba(90, 169, 240, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+/* Responsive Grid & Containers */
+.workbench-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.benchmark-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .workbench-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .benchmark-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-container {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .summary-strip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .data-table th, .data-table td {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+}

@@ -21,9 +21,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from credence.api.routes import router as api_router
 from credence.ingest.citations import map_citations
 from credence.ingest.claims import extract_claims
 from credence.ingest.parse import parse_document
+from credence.report.ledger import apply_ledger_to_report, record_review
 from credence.report.models import AccessTier, Claim, Report, VerdictType
 from credence.verify.pipeline import build_report, verify_claim
 
@@ -41,6 +43,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include review ledger and audit API routes
+app.include_router(api_router)
 
 # In-memory store for generated reports (backed by ID)
 REPORTS_STORE: dict[str, dict[str, Any]] = {}
@@ -126,13 +131,33 @@ def health_check():
 
 @app.get("/demo/report")
 def get_demo_report():
-    """Return worked demo report instantly for offline testing."""
-    return REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+    """Return worked demo report instantly for offline testing, with SQLite ledger applied."""
+    rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+    return apply_ledger_to_report(dict(rep))
 
 
 @app.post("/verify")
-async def verify_document(file: UploadFile = File(...)):
+async def verify_document(
+    file: UploadFile = File(...),
+    force_error: bool = False,
+    demo_mode: bool = False,
+):
     """Upload PDF or DOCX manuscript and run complete verification pipeline."""
+    if force_error:
+        raise HTTPException(
+            status_code=500,
+            detail="Verification pipeline forced error: Academic database retrieval gateway timed out."
+        )
+
+    if demo_mode:
+        # Fully offline demo mode: serve pre-cached verification results from data/demo with zero external API calls
+        rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+        cached = dict(rep)
+        cached["document_name"] = file.filename
+        cached["id"] = f"demo-mode-{uuid.uuid4().hex[:8]}"
+        cached["offline_demo_mode"] = True
+        return apply_ledger_to_report(cached)
+
     suffix = Path(file.filename).suffix.lower()
     if suffix not in (".pdf", ".docx", ".doc"):
         raise HTTPException(status_code=400, detail="Supported file formats: .pdf, .docx")
@@ -162,6 +187,12 @@ async def verify_document(file: UploadFile = File(...)):
             # Fallback to full body claim extraction
             claims = extract_claims(parsed_doc.text, section_name="Full Manuscript")
 
+        # Ensure distinct claim and slot IDs across sections
+        for idx, cl in enumerate(claims, 1):
+            cl.id = f"claim-{idx}"
+            for sidx, slot in enumerate(cl.slots, 1):
+                slot.id = f"claim-{idx}-slot-{sidx}"
+
         # Verify claims against citations
         verified_claims: list[Claim] = []
         for cl in claims:
@@ -176,9 +207,9 @@ async def verify_document(file: UploadFile = File(...)):
                 source_text = f"{ref_entry.title}. {ref_entry.journal or ''} {ref_entry.year or ''}."
                 if ref_entry.doi:
                     source_text += f" https://doi.org/{ref_entry.doi}"
-
-            # If no mapped reference, use manuscript body context as fallback
-            if not source_text:
+            else:
+                if ref_key:
+                    access_tier = AccessTier.INACCESSIBLE
                 source_text = parsed_doc.text
 
             v_cl = verify_claim(cl, source_text=source_text, access_tier=access_tier, citation_key=ref_key)
@@ -199,6 +230,7 @@ async def verify_document(file: UploadFile = File(...)):
         rep_dict = report.to_dict()
         rep_id = str(uuid.uuid4())
         rep_dict["id"] = rep_id
+        rep_dict = apply_ledger_to_report(rep_dict)
         REPORTS_STORE[rep_id] = rep_dict
         return rep_dict
 
@@ -227,11 +259,11 @@ def verify_text_claim(req: TextVerifyRequest):
 
 @app.get("/report/{report_id}")
 def get_report(report_id: str):
-    """Retrieve verified report by ID."""
+    """Retrieve verified report by ID with SQLite review ledger overrides applied."""
     report = REPORTS_STORE.get(report_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    return report
+    return apply_ledger_to_report(dict(report))
 
 
 @app.post("/report/{report_id}/review")
@@ -245,21 +277,23 @@ def review_claim(report_id: str, claim_id: str, action: ReviewAction):
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found in report")
 
+    review_entry = record_review(
+        claim_id=claim_id,
+        action=action.action,
+        override_verdict=action.override_verdict,
+        comment=action.comment,
+        reviewer_id=action.reviewer_id or "reviewer-1",
+    )
+
     if "reviews" not in claim:
         claim["reviews"] = []
-
-    review_entry = {
-        "action": action.action,
-        "override_verdict": action.override_verdict,
-        "comment": action.comment,
-        "reviewer_id": action.reviewer_id,
-    }
     claim["reviews"].append(review_entry)
 
     if action.action == "override" and action.override_verdict:
         if claim.get("verdict"):
             claim["verdict"]["verdict"] = action.override_verdict
             claim["verdict"]["display_verdict"] = f"{action.override_verdict.capitalize()} (Overridden)"
+            claim["verdict"]["override_info"] = review_entry
 
     return {"status": "ok", "claim_id": claim_id, "review": review_entry}
 

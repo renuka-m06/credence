@@ -10,6 +10,19 @@ from credence.server import app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def clean_demo_claim_reviews():
+    """Ensure demo claim-1 has a clean slate for baseline demo tests."""
+    from credence.report.ledger import get_connection
+    with get_connection() as conn:
+        conn.execute("DELETE FROM review_ledger WHERE claim_id = 'claim-1';")
+        conn.commit()
+    yield
+    with get_connection() as conn:
+        conn.execute("DELETE FROM review_ledger WHERE claim_id = 'claim-1';")
+        conn.commit()
+
+
 def test_health():
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -65,6 +78,27 @@ def test_verify_document_upload():
     assert fetch_resp.json()["id"] == report_id
 
 
+def test_verify_forced_error_and_invalid_extension():
+    """Verify error states: forced pipeline error and invalid file format return friendly messages."""
+    pdf_path = Path("data/demo/sample_paper.pdf")
+    with open(pdf_path, "rb") as f:
+        err_resp = client.post(
+            "/verify?force_error=true",
+            files={"file": ("sample_paper.pdf", f, "application/pdf")},
+        )
+    assert err_resp.status_code == 500
+    err_data = err_resp.json()
+    assert "Verification pipeline forced error" in err_data["detail"]
+
+    bad_resp = client.post(
+        "/verify",
+        files={"file": ("notes.txt", b"plain text content", "text/plain")},
+    )
+    assert bad_resp.status_code == 400
+    bad_data = bad_resp.json()
+    assert "Supported file formats" in bad_data["detail"]
+
+
 def test_review_claim_actions():
     resp = client.get("/demo/report")
     report_id = resp.json()["id"]
@@ -89,3 +123,49 @@ def test_review_claim_actions():
     updated_report = client.get(f"/report/{report_id}").json()
     updated_claim = next(c for c in updated_report["claims"] if c["id"] == claim_id)
     assert updated_claim["verdict"]["verdict"] == "contradictory"
+
+
+def test_benchmark_endpoint():
+    """Verify GET /benchmark serves real evaluation numbers."""
+    resp = client.get("/benchmark")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_samples"] == 100
+    assert data["overall_accuracy"] == 0.95
+    assert data["fabricated_quotes_caught"] == 10
+    assert "supported" in data["per_verdict"]
+    assert len(data["calibration_bins"]) >= 5
+
+
+def test_export_report_formats():
+    """Verify GET /report/{id}/export generates downloadable HTML, Markdown, and JSON files."""
+    # 1. HTML export
+    res_html = client.get("/report/demo-report-1/export?format=html")
+    assert res_html.status_code == 200
+    assert "text/html" in res_html.headers["content-type"]
+    assert "attachment; filename=" in res_html.headers["content-disposition"]
+    assert "Credence Verification Report" in res_html.text
+
+    # 2. Markdown export
+    res_md = client.get("/report/demo-report-1/export?format=markdown")
+    assert res_md.status_code == 200
+    assert "text/markdown" in res_md.headers["content-type"]
+    assert "# Credence Scientific Verification Dossier" in res_md.text
+
+    # 3. JSON export
+    res_json = client.get("/report/demo-report-1/export?format=json")
+    assert res_json.status_code == 200
+    assert "application/json" in res_json.headers["content-type"]
+
+
+def test_offline_demo_mode_upload():
+    """Verify demo mode serves pre-cached data fully offline with 0 live API calls."""
+    resp = client.post(
+        "/verify?demo_mode=true",
+        files={"file": ("offline_manuscript.pdf", b"%PDF-1.4 dummy", "application/pdf")},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data.get("offline_demo_mode") is True
+    assert data.get("document_name") == "offline_manuscript.pdf"
+    assert len(data.get("claims", [])) >= 1
