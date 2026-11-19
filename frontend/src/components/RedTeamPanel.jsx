@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { apiUrl, getAuthHeaders } from '../api';
 
-// Color token mappings for Evidence Dependency Graph & Status Badges
+// Color token mappings for Evidence Dependency Graph & Status Badges (Warm-Monochrome, Coral & Amber - Zero Green/Blue)
 const CATEGORY_COLORS = {
-  supporting: { text: '#5fcf6a', bg: 'rgba(95, 207, 106, 0.14)', border: 'rgba(95, 207, 106, 0.35)', label: 'Supporting' },
-  contradictory: { text: '#ef6b6b', bg: 'rgba(239, 107, 107, 0.14)', border: 'rgba(239, 107, 107, 0.35)', label: 'Contradictory' },
-  partial: { text: '#e3a93a', bg: 'rgba(227, 169, 58, 0.14)', border: 'rgba(227, 169, 58, 0.35)', label: 'Partially Supporting' },
-  inconclusive: { text: '#9a9ca4', bg: 'rgba(154, 156, 164, 0.14)', border: 'rgba(154, 156, 164, 0.35)', label: 'Inconclusive' },
-  integrity_alert: { text: '#b372f5', bg: 'rgba(179, 114, 245, 0.16)', border: 'rgba(179, 114, 245, 0.45)', label: 'Integrity Alert' },
+  supporting: { text: 'var(--supported-color)', bg: 'var(--supported-bg)', border: 'var(--supported-border)', label: 'Supporting' },
+  contradictory: { text: 'var(--contradictory-color)', bg: 'var(--contradictory-bg)', border: 'var(--contradictory-border)', label: 'Contradictory' },
+  partial: { text: 'var(--partial-color)', bg: 'var(--partial-bg)', border: 'var(--partial-border)', label: 'Partially Supporting' },
+  inconclusive: { text: 'var(--text-secondary)', bg: 'var(--btn-secondary-bg)', border: 'var(--btn-secondary-border)', label: 'Inconclusive' },
+  integrity_alert: { text: 'var(--contradictory-color)', bg: 'var(--contradictory-bg)', border: 'var(--contradictory-border)', label: 'Integrity Alert' },
 };
 
 const OUTCOME_STYLES = {
-  'Supported by available evidence': { color: '#5fcf6a', bg: 'rgba(95, 207, 106, 0.14)', border: '#5fcf6a' },
-  'Partially supported': { color: '#e3a93a', bg: 'rgba(227, 169, 58, 0.14)', border: '#e3a93a' },
-  'Contested by contradictory evidence': { color: '#ef6b6b', bg: 'rgba(239, 107, 107, 0.14)', border: '#ef6b6b' },
-  'Unsupported by retrieved evidence': { color: '#ef6b6b', bg: 'rgba(239, 107, 107, 0.14)', border: '#ef6b6b' },
-  'Publication integrity concern': { color: '#b372f5', bg: 'rgba(179, 114, 245, 0.18)', border: '#b372f5' },
-  'Insufficient evidence to determine': { color: '#5aa9f0', bg: 'rgba(90, 169, 240, 0.14)', border: '#5aa9f0' },
+  'Supported by available evidence': { color: 'var(--supported-color)', bg: 'var(--supported-bg)', border: 'var(--supported-border)' },
+  'Partially supported': { color: 'var(--partial-color)', bg: 'var(--partial-bg)', border: 'var(--partial-border)' },
+  'Contested by contradictory evidence': { color: 'var(--contradictory-color)', bg: 'var(--contradictory-bg)', border: 'var(--contradictory-border)' },
+  'Unsupported by retrieved evidence': { color: 'var(--contradictory-color)', bg: 'var(--contradictory-bg)', border: 'var(--contradictory-border)' },
+  'Publication integrity concern': { color: 'var(--contradictory-color)', bg: 'var(--contradictory-bg)', border: 'var(--contradictory-border)' },
+  'Insufficient evidence to determine': { color: 'var(--needs-review-color)', bg: 'var(--needs-review-bg)', border: 'var(--needs-review-border)' },
 };
 
 export default function RedTeamPanel({
@@ -218,13 +218,13 @@ export default function RedTeamPanel({
             width: '44px',
             height: '44px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(239, 107, 107, 0.2) 0%, rgba(240, 106, 44, 0.2) 100%)',
-            border: '1px solid rgba(239, 107, 107, 0.4)',
-            color: '#ef6b6b',
+            background: 'var(--contradictory-bg)',
+            border: '1px solid var(--contradictory-border)',
+            color: 'var(--contradictory-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(239, 107, 107, 0.15)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -242,11 +242,11 @@ export default function RedTeamPanel({
                 fontWeight: '700',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                background: 'rgba(239, 107, 107, 0.16)',
-                color: '#ef6b6b',
+                background: 'var(--contradictory-bg)',
+                color: 'var(--contradictory-color)',
                 padding: '2px 8px',
                 borderRadius: '4px',
-                border: '1px solid rgba(239, 107, 107, 0.3)',
+                border: '1px solid var(--contradictory-border)',
               }}>
                 Adversarial Scientific Integrity
               </span>
@@ -310,13 +310,13 @@ export default function RedTeamPanel({
               onClick={handleStartChallenge}
               className="btn btn-primary"
               style={{
-                background: 'linear-gradient(135deg, #ef6b6b 0%, #f06a2c 100%)',
+                background: 'linear-gradient(135deg, var(--contradictory-color) 0%, var(--accent-orange) 100%)',
                 borderColor: 'transparent',
                 color: '#ffffff',
                 fontWeight: '700',
                 padding: '10px 22px',
                 fontSize: '13.5px',
-                boxShadow: '0 4px 16px rgba(239, 107, 107, 0.3)',
+                boxShadow: '0 4px 16px rgba(248, 113, 113, 0.25)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '9px',
@@ -341,8 +341,8 @@ export default function RedTeamPanel({
       {error && !investigating && (
         <div style={{
           padding: '24px 28px',
-          background: 'rgba(239, 107, 107, 0.08)',
-          borderBottom: '1px solid rgba(239, 107, 107, 0.3)',
+          background: 'var(--contradictory-bg)',
+          borderBottom: '1px solid var(--contradictory-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -354,8 +354,8 @@ export default function RedTeamPanel({
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: 'rgba(239, 107, 107, 0.2)',
-              color: '#ef6b6b',
+              background: 'var(--contradictory-bg)',
+              color: 'var(--contradictory-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -368,7 +368,7 @@ export default function RedTeamPanel({
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#ef6b6b' }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--contradictory-color)' }}>
                 Adversarial Audit Failed
               </div>
               <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -380,8 +380,8 @@ export default function RedTeamPanel({
             onClick={handleStartChallenge}
             className="btn btn-primary btn-sm"
             style={{
-              background: '#ef6b6b',
-              borderColor: '#ef6b6b',
+              background: 'var(--contradictory-color)',
+              borderColor: 'var(--contradictory-color)',
               color: '#ffffff',
               fontWeight: '600',
               padding: '8px 18px',
@@ -417,11 +417,11 @@ export default function RedTeamPanel({
                   fontWeight: '700',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
-                  background: 'rgba(90, 169, 240, 0.14)',
-                  color: '#5aa9f0',
+                  background: 'var(--needs-review-bg)',
+                  color: 'var(--needs-review-color)',
                   padding: '3px 9px',
                   borderRadius: '5px',
-                  border: '1px solid rgba(90, 169, 240, 0.35)',
+                  border: '1px solid var(--needs-review-border)',
                 }}>
                   Status: Not Yet Audited
                 </span>
@@ -483,7 +483,7 @@ export default function RedTeamPanel({
             <div style={{
               height: '100%',
               width: `${((currentStageIndex + 1) / 5) * 100}%`,
-              background: 'linear-gradient(90deg, #ef6b6b, #f06a2c)',
+              background: 'linear-gradient(90deg, var(--contradictory-color), var(--accent-orange))',
               transition: 'width 0.35s ease',
             }} />
           </div>
@@ -497,16 +497,16 @@ export default function RedTeamPanel({
                 <div key={st.key} style={{
                   padding: '12px 14px',
                   borderRadius: '10px',
-                  border: isCurrent ? '1px solid #f06a2c' : (isPast ? '1px solid var(--border-line)' : '1px dashed var(--border-line)'),
+                  border: isCurrent ? '1px solid var(--accent-orange)' : (isPast ? '1px solid var(--border-line)' : '1px dashed var(--border-line)'),
                   background: isCurrent ? 'var(--accent-orange-subtle)' : (isPast ? 'var(--bg-surface-elevated)' : 'transparent'),
                   opacity: isPast || isCurrent ? 1 : 0.45,
                   transition: 'all 0.25s ease',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     {isPast ? (
-                      <span style={{ color: '#5fcf6a', fontSize: '14px', fontWeight: '700' }}>✓</span>
+                      <span style={{ color: 'var(--supported-color)', fontSize: '14px', fontWeight: '700' }}>✓</span>
                     ) : isCurrent ? (
-                      <span className="spin" style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #f06a2c', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                      <span className="spin" style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid var(--accent-orange)', borderTopColor: 'transparent', borderRadius: '50%' }} />
                     ) : (
                       <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{idx + 1}</span>
                     )}
@@ -575,11 +575,11 @@ export default function RedTeamPanel({
                   fontWeight: '600',
                   padding: '3px 9px',
                   borderRadius: '5px',
-                  background: 'rgba(95, 207, 106, 0.12)',
-                  color: '#5fcf6a',
-                  border: '1px solid rgba(95, 207, 106, 0.3)'
+                  background: 'var(--supported-bg)',
+                  color: 'var(--supported-color)',
+                  border: '1px solid var(--supported-border)'
                 }}>
-                  {investigationData.stage_d_independence?.independent_replications ?? 1} Supporting Sources
+                  ✓ {investigationData.stage_d_independence?.independent_replications ?? 1} Supporting Sources
                 </span>
 
                 <span style={{
@@ -587,9 +587,9 @@ export default function RedTeamPanel({
                   fontWeight: '600',
                   padding: '3px 9px',
                   borderRadius: '5px',
-                  background: (investigationData.stage_b_counter_evidence?.length || 0) > 0 ? 'rgba(239, 107, 107, 0.14)' : 'rgba(255,255,255,0.06)',
-                  color: (investigationData.stage_b_counter_evidence?.length || 0) > 0 ? '#ef6b6b' : 'var(--text-tertiary)',
-                  border: `1px solid ${(investigationData.stage_b_counter_evidence?.length || 0) > 0 ? 'rgba(239, 107, 107, 0.35)' : 'var(--border-line)'}`
+                  background: (investigationData.stage_b_counter_evidence?.length || 0) > 0 ? 'var(--contradictory-bg)' : 'var(--bg-surface-elevated)',
+                  color: (investigationData.stage_b_counter_evidence?.length || 0) > 0 ? 'var(--contradictory-color)' : 'var(--text-tertiary)',
+                  border: `1px solid ${(investigationData.stage_b_counter_evidence?.length || 0) > 0 ? 'var(--contradictory-border)' : 'var(--border-line)'}`
                 }}>
                   {investigationData.stage_b_counter_evidence?.length || 0} Contradictory Studies
                 </span>
@@ -599,9 +599,9 @@ export default function RedTeamPanel({
                   fontWeight: '600',
                   padding: '3px 9px',
                   borderRadius: '5px',
-                  background: investigationData.stage_a_source_integrity?.is_alert ? 'rgba(179, 114, 245, 0.16)' : 'rgba(255,255,255,0.06)',
-                  color: investigationData.stage_a_source_integrity?.is_alert ? '#b372f5' : 'var(--text-tertiary)',
-                  border: `1px solid ${investigationData.stage_a_source_integrity?.is_alert ? 'rgba(179, 114, 245, 0.4)' : 'var(--border-line)'}`
+                  background: investigationData.stage_a_source_integrity?.is_alert ? 'var(--contradictory-bg)' : 'var(--bg-surface-elevated)',
+                  color: investigationData.stage_a_source_integrity?.is_alert ? 'var(--contradictory-color)' : 'var(--text-tertiary)',
+                  border: `1px solid ${investigationData.stage_a_source_integrity?.is_alert ? 'var(--contradictory-border)' : 'var(--border-line)'}`
                 }}>
                   {investigationData.stage_a_source_integrity?.is_alert ? '⚠️ Retraction / Erratum Flag' : '0 Retraction Flags'}
                 </span>
@@ -611,9 +611,9 @@ export default function RedTeamPanel({
                   fontWeight: '600',
                   padding: '3px 9px',
                   borderRadius: '5px',
-                  background: (investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? 'rgba(251, 191, 36, 0.12)' : 'rgba(255,255,255,0.06)',
-                  color: (investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? '#fbbf24' : 'var(--text-tertiary)',
-                  border: `1px solid ${(investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? 'rgba(251, 191, 36, 0.35)' : 'var(--border-line)'}`
+                  background: (investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? 'var(--partial-bg)' : 'var(--bg-surface-elevated)',
+                  color: (investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? 'var(--partial-color)' : 'var(--text-tertiary)',
+                  border: `1px solid ${(investigationData.stage_c_numerical_integrity?.length || 0) > 0 ? 'var(--partial-border)' : 'var(--border-line)'}`
                 }}>
                   {investigationData.stage_c_numerical_integrity?.length || 0} Statistical Discrepancies
                 </span>
@@ -780,9 +780,9 @@ export default function RedTeamPanel({
                           padding: '3px 10px',
                           borderRadius: '6px',
                           textTransform: 'uppercase',
-                          background: investigationData.stage_a_source_integrity.is_alert ? 'rgba(239, 107, 107, 0.16)' : 'rgba(95, 207, 106, 0.16)',
-                          color: investigationData.stage_a_source_integrity.is_alert ? '#ef6b6b' : '#5fcf6a',
-                          border: `1px solid ${investigationData.stage_a_source_integrity.is_alert ? '#ef6b6b' : '#5fcf6a'}`,
+                          background: investigationData.stage_a_source_integrity.is_alert ? 'var(--contradictory-bg)' : 'var(--supported-bg)',
+                          color: investigationData.stage_a_source_integrity.is_alert ? 'var(--contradictory-color)' : 'var(--supported-color)',
+                          border: `1px solid ${investigationData.stage_a_source_integrity.is_alert ? 'var(--contradictory-border)' : 'var(--supported-border)'}`,
                         }}>
                           {investigationData.stage_a_source_integrity.status}
                         </span>
@@ -808,7 +808,7 @@ export default function RedTeamPanel({
                         Published: <strong>{investigationData.stage_a_source_integrity.publication_date || 'N/A'}</strong>
                       </div>
                       {investigationData.stage_a_source_integrity.update_date && (
-                        <div style={{ fontSize: '12px', color: '#ef6b6b', marginTop: '2px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--contradictory-color)', marginTop: '2px' }}>
                           Notice Date: <strong>{investigationData.stage_a_source_integrity.update_date}</strong>
                         </div>
                       )}
@@ -820,11 +820,11 @@ export default function RedTeamPanel({
                     <div style={{
                       padding: '16px 20px',
                       borderRadius: '12px',
-                      background: 'rgba(239, 107, 107, 0.08)',
-                      border: '1px solid rgba(239, 107, 107, 0.3)',
+                      background: 'var(--contradictory-bg)',
+                      border: '1px solid var(--contradictory-border)',
                       marginBottom: '16px',
                     }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#ef6b6b', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '13.5px', fontWeight: '700', color: 'var(--contradictory-color)', marginBottom: '4px' }}>
                         {investigationData.stage_a_source_integrity.notice_title || 'Formal Integrity Notice on Record'}
                       </div>
                       <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -833,7 +833,7 @@ export default function RedTeamPanel({
                       {investigationData.stage_a_source_integrity.notice_reasons?.length > 0 && (
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                           {investigationData.stage_a_source_integrity.notice_reasons.map((r, i) => (
-                            <span key={i} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 107, 107, 0.15)', color: '#ef6b6b' }}>
+                            <span key={i} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'var(--contradictory-bg)', color: 'var(--contradictory-color)', border: '1px solid var(--contradictory-border)' }}>
                               {r}
                             </span>
                           ))}
@@ -877,8 +877,8 @@ export default function RedTeamPanel({
                                 padding: '2px 8px',
                                 borderRadius: '4px',
                                 marginRight: '8px',
-                                background: ce.relationship === 'failed_replication' ? 'rgba(239, 107, 107, 0.16)' : 'rgba(227, 169, 58, 0.16)',
-                                color: ce.relationship === 'failed_replication' ? '#ef6b6b' : '#e3a93a',
+                                background: ce.relationship === 'failed_replication' ? 'var(--contradictory-bg)' : 'var(--partial-bg)',
+                                color: ce.relationship === 'failed_replication' ? 'var(--contradictory-color)' : 'var(--partial-color)',
                               }}>
                                 {ce.relationship.replace('_', ' ')}
                               </span>
@@ -900,7 +900,7 @@ export default function RedTeamPanel({
                             padding: '12px 16px',
                             borderRadius: '8px',
                             background: 'var(--bg-surface)',
-                            borderLeft: '3px solid #ef6b6b',
+                            borderLeft: '3px solid var(--contradictory-color)',
                             marginBottom: '10px',
                             fontSize: '12.5px',
                             color: 'var(--text-primary)',
@@ -913,9 +913,9 @@ export default function RedTeamPanel({
                           {/* Metrics row */}
                           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
                             {ce.sample_size && <span>Sample: <strong style={{ color: 'var(--text-primary)' }}>{ce.sample_size}</strong></span>}
-                            {ce.p_value && <span>p-value: <strong style={{ color: '#ef6b6b' }}>{ce.p_value}</strong></span>}
+                            {ce.p_value && <span>p-value: <strong style={{ color: 'var(--contradictory-color)' }}>{ce.p_value}</strong></span>}
                             {ce.effect_size && <span>Effect: <strong>{ce.effect_size}</strong></span>}
-                            <span style={{ color: '#5fcf6a' }}>✓ Normalization Match Confirmed in Source</span>
+                            <span style={{ color: 'var(--supported-color)' }}>✓ Normalization Match Confirmed in Source</span>
                             {ce.url && (
                               <a href={ce.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-orange)', textDecoration: 'none', marginLeft: 'auto' }}>
                                 View Source Paper ↗
@@ -958,7 +958,7 @@ export default function RedTeamPanel({
                               <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--text-primary)', textTransform: 'capitalize' }}>
                                 {num.parameter.replace('_', ' ')}
                               </td>
-                              <td style={{ padding: '12px 14px', color: '#ef6b6b', fontWeight: '700' }}>
+                              <td style={{ padding: '12px 14px', color: 'var(--contradictory-color)', fontWeight: '700' }}>
                                 {num.asserted_in_claim}
                               </td>
                               <td style={{ padding: '12px 14px', color: 'var(--text-primary)' }}>
@@ -991,13 +991,13 @@ export default function RedTeamPanel({
                     </div>
                     <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-line)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Independent Replications</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#5fcf6a', marginTop: '4px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--supported-color)', marginTop: '4px' }}>
                         {investigationData.stage_d_independence?.independent_replications || 0}
                       </div>
                     </div>
                     <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-line)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Dependent Citations / Re-analyses</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#e3a93a', marginTop: '4px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--partial-color)', marginTop: '4px' }}>
                         {investigationData.stage_d_independence?.dependent_citations || 0}
                       </div>
                     </div>
@@ -1014,8 +1014,8 @@ export default function RedTeamPanel({
 
                   {/* Shared Dataset Alerts */}
                   {investigationData.stage_d_independence?.shared_dataset_alerts?.length > 0 && (
-                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(227, 169, 58, 0.1)', border: '1px solid rgba(227, 169, 58, 0.3)', marginBottom: '14px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#e3a93a', marginBottom: '4px' }}>
+                    <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--partial-bg)', border: '1px solid var(--partial-border)', marginBottom: '14px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--partial-color)', marginBottom: '4px' }}>
                         ⚠️ Shared Cohort / Dataset Notice
                       </div>
                       {investigationData.stage_d_independence.shared_dataset_alerts.map((al, idx) => (
@@ -1056,8 +1056,8 @@ export default function RedTeamPanel({
                                 textTransform: 'uppercase',
                                 padding: '2px 8px',
                                 borderRadius: '4px',
-                                background: lim.severity === 'critical' ? 'rgba(239, 107, 107, 0.16)' : 'rgba(227, 169, 58, 0.16)',
-                                color: lim.severity === 'critical' ? '#ef6b6b' : '#e3a93a',
+                                background: lim.severity === 'critical' ? 'var(--contradictory-bg)' : 'var(--partial-bg)',
+                                color: lim.severity === 'critical' ? 'var(--contradictory-color)' : 'var(--partial-color)',
                               }}>
                                 {lim.severity}
                               </span>
@@ -1136,11 +1136,11 @@ export default function RedTeamPanel({
                 }}>
                   <svg width="100%" height="340" viewBox="0 0 540 320" style={{ overflow: 'visible' }}>
                     <defs>
-                      <marker id="arrow-green" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#5fcf6a" />
+                      <marker id="arrow-neutral" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--supported-border)" />
                       </marker>
                       <marker id="arrow-red" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef6b6b" />
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--contradictory-color)" />
                       </marker>
                     </defs>
 
@@ -1162,7 +1162,7 @@ export default function RedTeamPanel({
                             y1={y1}
                             x2={x2}
                             y2={y2}
-                            stroke={edge.relationship_type === 'contradicts' ? 'rgba(239, 107, 107, 0.45)' : 'rgba(95, 207, 106, 0.45)'}
+                            stroke={edge.relationship_type === 'contradicts' ? 'var(--contradictory-border)' : 'var(--border-line)'}
                             strokeWidth="2"
                             strokeDasharray={edge.status === 'inferred' ? '4 3' : 'none'}
                           />
@@ -1381,7 +1381,7 @@ export default function RedTeamPanel({
                   {investigationData.timeline?.map((ev, i) => {
                     const isAlert = ev.category === 'integrity_alert';
                     const isContra = ev.category === 'contradictory';
-                    const dotColor = isAlert ? '#b372f5' : (isContra ? '#ef6b6b' : '#5fcf6a');
+                    const dotColor = isAlert ? 'var(--accent-orange)' : (isContra ? 'var(--contradictory-color)' : 'var(--supported-color)');
                     return (
                       <div key={ev.id || i} style={{ position: 'relative' }}>
                         {/* Dot marker */}
@@ -1504,7 +1504,7 @@ export default function RedTeamPanel({
                           <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>{tr.paper_title}</td>
                           <td style={{ padding: '10px 14px' }}><code>{tr.doi || 'N/A'}</code></td>
                           <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{tr.database}</td>
-                          <td style={{ padding: '10px 14px', color: '#5fcf6a', fontWeight: '600' }}>
+                          <td style={{ padding: '10px 14px', color: 'var(--supported-color)', fontWeight: '600' }}>
                             {tr.code_verified_quote ? '✓ Code Verified' : '⚠️ Unverified'}
                           </td>
                         </tr>

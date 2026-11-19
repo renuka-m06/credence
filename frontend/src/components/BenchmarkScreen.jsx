@@ -176,9 +176,9 @@ export default function BenchmarkScreen() {
                 type="button"
                 onClick={() => { setActiveTab('real'); setFilterCategory('all'); }}
                 style={{
-                  background: isReal ? 'rgba(95, 207, 106, 0.16)' : 'transparent',
+                  background: isReal ? 'var(--supported-bg)' : 'transparent',
                   color: isReal ? 'var(--supported-color)' : 'var(--muted)',
-                  border: isReal ? '1px solid rgba(95, 207, 106, 0.4)' : '1px solid transparent',
+                  border: isReal ? '1px solid var(--supported-border)' : '1px solid transparent',
                   padding: '7px 16px',
                   borderRadius: '10px',
                   fontSize: '13px',
@@ -194,7 +194,7 @@ export default function BenchmarkScreen() {
                 <span>Real-World Academic Benchmark</span>
                 <span style={{
                   background: isReal ? 'var(--supported-color)' : 'rgba(255,255,255,0.08)',
-                  color: isReal ? '#0b0b0e' : 'var(--muted)',
+                  color: isReal ? 'var(--text-inverse)' : 'var(--muted)',
                   fontSize: '11px',
                   fontWeight: '800',
                   padding: '1px 6px',
@@ -226,7 +226,7 @@ export default function BenchmarkScreen() {
                 <span>Synthetic Corrupted Benchmark</span>
                 <span style={{
                   background: !isReal ? 'var(--orange2)' : 'rgba(255,255,255,0.08)',
-                  color: !isReal ? '#0b0b0e' : 'var(--muted)',
+                  color: !isReal ? 'var(--text-inverse)' : 'var(--muted)',
                   fontSize: '11px',
                   fontWeight: '800',
                   padding: '1px 6px',
@@ -321,8 +321,8 @@ export default function BenchmarkScreen() {
 
         {/* DIAGNOSTIC AUDIT NOTICE BANNER */}
         <div style={{
-          background: isReal ? 'rgba(95, 207, 106, 0.06)' : 'rgba(240, 106, 44, 0.08)',
-          border: isReal ? '1px solid rgba(95, 207, 106, 0.3)' : '1px solid rgba(240, 106, 44, 0.3)',
+          background: isReal ? 'var(--supported-bg)' : 'var(--accent-orange-subtle)',
+          border: isReal ? '1px solid var(--supported-border)' : '1px solid var(--accent-orange-border)',
           borderRadius: '12px',
           padding: '16px 20px',
           marginBottom: '28px',
@@ -347,7 +347,7 @@ export default function BenchmarkScreen() {
           <span style={{
             background: 'var(--supported-bg)',
             color: 'var(--supported-color)',
-            border: '1px solid rgba(95, 207, 106, 0.3)',
+            border: '1px solid var(--supported-border)',
             fontSize: '11px',
             fontWeight: '700',
             padding: '4px 10px',
@@ -406,8 +406,8 @@ export default function BenchmarkScreen() {
                         const count = rowData[predCls.key] || 0;
                         const isDiagonal = expCls.key === predCls.key;
                         const bg = isDiagonal
-                          ? (count > 0 ? 'rgba(95, 207, 106, 0.14)' : 'transparent')
-                          : (count > 0 ? 'rgba(239, 107, 107, 0.18)' : 'transparent');
+                          ? (count > 0 ? 'var(--supported-bg)' : 'transparent')
+                          : (count > 0 ? 'var(--contradictory-bg)' : 'transparent');
                         const textColor = isDiagonal
                           ? (count > 0 ? 'var(--supported-color)' : 'var(--faint)')
                           : (count > 0 ? 'var(--contradictory-color)' : 'var(--faint)');

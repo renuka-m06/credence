@@ -748,8 +748,20 @@ export default function ReportScreen({
                             color: 'var(--text-primary)'
                           }}
                         >
-                          <span style={{ display: 'inline-block', fontSize: '10px', background: 'var(--supported-color)', color: '#000', padding: '1px 6px', borderRadius: '3px', fontWeight: '700', marginBottom: '6px' }}>
-                            SUPPORTING PASSAGE
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            background: 'var(--supported-bg)',
+                            color: 'var(--supported-color)',
+                            border: '1px solid var(--supported-border)',
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            fontWeight: '700',
+                            marginBottom: '6px'
+                          }}>
+                            ✓ SUPPORTING PASSAGE
                           </span>
                           <div style={{ fontStyle: 'italic', fontSize: '13.5px' }}>
                             "{sourceEvidenceData.exact_quotation}"
@@ -1162,7 +1174,7 @@ export default function ReportScreen({
                           <div style={{
                             width: `${(selectedClaim.verdict?.confidence || 0) * 100}%`,
                             height: '100%',
-                            background: 'linear-gradient(90deg, #f06a2c, #ff7d3c)'
+                            background: 'linear-gradient(90deg, var(--accent-orange), var(--accent-orange-hover))'
                           }} />
                         </div>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
@@ -1172,12 +1184,12 @@ export default function ReportScreen({
                     </div>
                   </div>
 
-                  {/* Clean Action Group */}
+                  {/* Clean Action Group - Secondary buttons adhere strictly to warm-monochrome palette */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleAction('accept')}
-                      style={{ color: 'var(--supported-color)', borderColor: 'var(--supported-border)', fontSize: '12px', padding: '5px 12px' }}
+                      style={{ fontSize: '12px', padding: '5px 12px' }}
                       title="Accept computed verdict"
                     >
                       ✓ Accept
@@ -1188,7 +1200,7 @@ export default function ReportScreen({
                         setShowOverrideModal(prev => !prev);
                         setShowCommentModal(false);
                       }}
-                      style={{ color: 'var(--partial-color)', borderColor: 'var(--partial-border)', fontSize: '12px', padding: '5px 12px' }}
+                      style={{ fontSize: '12px', padding: '5px 12px' }}
                       title="Override verdict with justification"
                     >
                       ✎ Override
@@ -1199,7 +1211,7 @@ export default function ReportScreen({
                         setShowCommentModal(prev => !prev);
                         setShowOverrideModal(false);
                       }}
-                      style={{ color: 'var(--needs-review-color)', borderColor: 'var(--needs-review-border)', fontSize: '12px', padding: '5px 12px' }}
+                      style={{ fontSize: '12px', padding: '5px 12px' }}
                       title="Add review comment"
                     >
                       💬 Comment
@@ -1207,7 +1219,7 @@ export default function ReportScreen({
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleOpenSourceEvidence(selectedClaim)}
-                      style={{ color: 'var(--accent-orange)', borderColor: 'var(--accent-orange-border)', fontSize: '12px', padding: '5px 12px' }}
+                      style={{ fontSize: '12px', padding: '5px 12px' }}
                       title="Inspect full source passage"
                     >
                       Inspect Source ↗
@@ -1468,7 +1480,7 @@ export default function ReportScreen({
                   <div style={{
                     background: 'var(--bg-surface-elevated)',
                     border: '1px solid var(--border-line)',
-                    borderLeft: `4px solid ${isQuoteVerified ? 'var(--supported-color)' : 'var(--accent-orange)'}`,
+                    borderLeft: `4px solid ${isQuoteVerified ? 'var(--supported-border)' : 'var(--accent-orange)'}`,
                     borderRadius: '10px',
                     padding: '20px',
                     display: 'flex',
@@ -1489,7 +1501,7 @@ export default function ReportScreen({
                         borderRadius: '6px',
                         border: `1px solid ${isQuoteVerified ? 'var(--supported-border)' : 'var(--accent-orange-border)'}`
                       }}>
-                        {isQuoteVerified ? 'VERIFIED SOURCE QUOTE' : 'UNVERIFIED QUOTE'}
+                        {isQuoteVerified ? '✓ VERIFIED SOURCE QUOTE' : 'UNVERIFIED QUOTE'}
                       </span>
 
                       <span style={{ fontSize: '11px', color: isQuoteVerified ? 'var(--supported-color)' : 'var(--unsupported-color)', fontWeight: '600' }}>
@@ -1612,7 +1624,7 @@ export default function ReportScreen({
                                         {res.number_match === false ? (
                                           <span style={{ color: 'var(--contradictory-color)' }}>Mismatch vs quote</span>
                                         ) : res.quote_verified ? (
-                                          <span style={{ color: 'var(--supported-color)' }}>Verbatim quote match</span>
+                                          <span style={{ color: 'var(--supported-color)' }}>✓ Verbatim quote match</span>
                                         ) : (
                                           <span style={{ color: 'var(--text-tertiary)' }}>Unverified</span>
                                         )}
@@ -1689,7 +1701,7 @@ export default function ReportScreen({
                       displayedWarnings.map((w, idx) => (
                         <div key={`diag-${idx}`} style={{ padding: '12px 16px', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-line)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#e3a93a', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--needs-review-color)', textTransform: 'uppercase' }}>
                               {w.warning_type?.replace('_', ' ')}
                             </span>
                             <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>

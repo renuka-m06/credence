@@ -5,17 +5,17 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Theme Tokens: Dark Mode (Default)
+   1. Theme Tokens: Dark Mode (Cohesive Warm-Monochrome, Coral & Amber)
    -------------------------------------------------------------------------- */
 :root,
 [data-theme="dark"] {
-  /* Surfaces */
-  --bg-app: #0c0d11;
-  --bg-surface: #14161d;
-  --bg-surface-elevated: #1a1d26;
-  --bg-surface-subtle: #111319;
-  --bg-card-hover: #1f222d;
-  --bg-backdrop: rgba(10, 11, 15, 0.85);
+  /* Canvas Background & Card / Panel Surfaces */
+  --bg-app: #0B0D10;
+  --bg-surface: #12151A;
+  --bg-surface-elevated: #181C22;
+  --bg-surface-subtle: #0E1015;
+  --bg-card-hover: #1C1F26;
+  --bg-backdrop: rgba(11, 13, 16, 0.88);
 
   /* Legacy Token Aliases */
   --bg: var(--bg-app);
@@ -28,58 +28,77 @@
   --orange: var(--accent-orange);
   --orange2: var(--accent-orange-hover);
 
-  /* Borders & Rules */
-  --border-line: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --border-focus: rgba(240, 106, 44, 0.5);
+  /* 1px Subtle Borders */
+  --border-line: #222730;
+  --border-subtle: #1A1E24;
+  --border-strong: #2E3542;
+  --border-focus: rgba(249, 115, 22, 0.5);
 
   /* Typography / Ink */
   --text-primary: #ededf2;
   --text-secondary: #9aa1b0;
   --text-tertiary: #656d7d;
-  --text-inverse: #0c0d11;
+  --text-inverse: #0B0D10;
 
-  /* Primary Brand Accent (Academic Amber-Orange) */
-  --accent-orange: #f06a2c;
-  --accent-orange-hover: #ff7d3c;
-  --accent-orange-subtle: rgba(240, 106, 44, 0.12);
-  --accent-orange-border: rgba(240, 106, 44, 0.32);
+  /* Primary Brand Accent (Coral Orange) */
+  --accent-orange: #F97316;
+  --accent-orange-hover: #FB923C;
+  --accent-orange-subtle: rgba(249, 115, 22, 0.12);
+  --accent-orange-border: rgba(249, 115, 22, 0.32);
 
-  /* Verdict Color Palette (14% alpha tinted backdrops) */
-  --supported-color: #4ade80;
-  --supported-bg: rgba(74, 222, 128, 0.12);
-  --supported-border: rgba(74, 222, 128, 0.3);
+  /* Secondary Action Buttons ("Accept", "Comment", "Inspect Source") */
+  --btn-secondary-bg: #1C1F26;
+  --btn-secondary-color: #D4D4D8;
+  --btn-secondary-border: #2E323B;
+  --btn-secondary-hover-bg: #282C36;
+  --btn-secondary-hover-border: #3E434F;
 
-  --partial-color: #fbbf24;
-  --partial-bg: rgba(251, 191, 36, 0.12);
-  --partial-border: rgba(251, 191, 36, 0.3);
+  /* Verified / Supported Status Badge (Monochrome with checkmark, zero green) */
+  --supported-color: #F4F4F5;
+  --supported-bg: #27272A;
+  --supported-border: #52525B;
 
-  --unsupported-color: #f87171;
-  --unsupported-bg: rgba(248, 113, 113, 0.12);
-  --unsupported-border: rgba(248, 113, 113, 0.3);
+  /* Warning / Needs Review Badge (Warm Amber) */
+  --needs-review-color: #FBBF24;
+  --needs-review-bg: #451A03;
+  --needs-review-border: #92400E;
 
-  --contradictory-color: #fb7185;
-  --contradictory-bg: rgba(251, 113, 133, 0.12);
-  --contradictory-border: rgba(251, 113, 133, 0.3);
+  --partial-color: #FBBF24;
+  --partial-bg: #451A03;
+  --partial-border: #92400E;
 
-  --needs-review-color: #60a5fa;
-  --needs-review-bg: rgba(96, 165, 250, 0.12);
-  --needs-review-border: rgba(96, 165, 250, 0.3);
+  --outdated-color: #FBBF24;
+  --outdated-bg: #451A03;
+  --outdated-border: #92400E;
 
-  --outdated-color: #c084fc;
-  --outdated-bg: rgba(192, 132, 252, 0.12);
-  --outdated-border: rgba(192, 132, 252, 0.3);
+  /* Contradictory / Critical Alert Badge (Terracotta-Coral) */
+  --contradictory-color: #F87171;
+  --contradictory-bg: #450A0A;
+  --contradictory-border: #991B1B;
+
+  --unsupported-color: #F87171;
+  --unsupported-bg: #450A0A;
+  --unsupported-border: #991B1B;
+
+  /* Status Dot ("Demo Offline") - Warm Amber/Coral, Zero Green */
+  --status-demo-bg: #1C1F26;
+  --status-demo-color: #D4D4D8;
+  --status-demo-border: #2E323B;
+  --status-demo-dot: #F97316;
+
+  /* Evidence Highlights - Zero Green/Blue */
+  --evidence-highlight-bg: rgba(244, 244, 245, 0.12);
+  --evidence-highlight-border: #52525B;
 
   /* Subtle Editorial Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-glow: 0 0 35px rgba(240, 106, 44, 0.10);
+  --shadow-glow: 0 0 35px rgba(249, 115, 22, 0.12);
 
   /* Atmosphere Radial Corner Accents */
-  --glow-top: radial-gradient(circle, rgba(240, 106, 44, 0.12) 0%, rgba(240, 106, 44, 0.02) 50%, transparent 70%);
-  --glow-bottom: radial-gradient(circle, rgba(255, 125, 60, 0.08) 0%, rgba(240, 106, 44, 0.01) 60%, transparent 75%);
+  --glow-top: radial-gradient(circle, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.02) 50%, transparent 70%);
+  --glow-bottom: radial-gradient(circle, rgba(251, 146, 60, 0.08) 0%, rgba(249, 115, 22, 0.01) 60%, transparent 75%);
 
   /* Code / Pre */
   --code-bg: #111319;
@@ -91,16 +110,16 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. Theme Tokens: Light Mode (Warm Archival Paper & Ink)
+   2. Theme Tokens: Light Mode (Warm Alabaster, Burnt Orange & Amber)
    -------------------------------------------------------------------------- */
 [data-theme="light"] {
-  /* Surfaces */
-  --bg-app: #f9f9f6;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #f2f2ec;
-  --bg-surface-subtle: #f6f6f2;
-  --bg-card-hover: #eaeae4;
-  --bg-backdrop: rgba(249, 249, 246, 0.90);
+  /* Canvas Background & Card / Panel Surfaces */
+  --bg-app: #FAF9F6;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F4F4F5;
+  --bg-surface-subtle: #F7F6F2;
+  --bg-card-hover: #EBE8E1;
+  --bg-backdrop: rgba(250, 249, 246, 0.92);
 
   /* Legacy Token Aliases */
   --bg: var(--bg-app);
@@ -113,58 +132,77 @@
   --orange: var(--accent-orange);
   --orange2: var(--accent-orange-hover);
 
-  /* Borders & Rules */
-  --border-line: rgba(20, 24, 32, 0.09);
-  --border-subtle: rgba(20, 24, 32, 0.05);
-  --border-strong: rgba(20, 24, 32, 0.20);
-  --border-focus: rgba(217, 88, 30, 0.6);
+  /* 1px Subtle Borders */
+  --border-line: #E5E2DC;
+  --border-subtle: rgba(229, 226, 220, 0.7);
+  --border-strong: #D1CCC2;
+  --border-focus: rgba(234, 88, 12, 0.6);
 
   /* Typography / Ink */
   --text-primary: #12141a;
   --text-secondary: #4d5462;
   --text-tertiary: #7e8796;
-  --text-inverse: #ffffff;
+  --text-inverse: #FFFFFF;
 
-  /* Primary Brand Accent (Warm Editorial Terracotta) */
-  --accent-orange: #d9581e;
-  --accent-orange-hover: #c44c15;
-  --accent-orange-subtle: rgba(217, 88, 30, 0.09);
-  --accent-orange-border: rgba(217, 88, 30, 0.30);
+  /* Primary Brand Accent (Burnt Orange) */
+  --accent-orange: #EA580C;
+  --accent-orange-hover: #C2410C;
+  --accent-orange-subtle: rgba(234, 88, 12, 0.09);
+  --accent-orange-border: rgba(234, 88, 12, 0.30);
 
-  /* Verdict Color Palette (Clean editorial contrast) */
-  --supported-color: #15803d;
-  --supported-bg: rgba(21, 128, 61, 0.10);
-  --supported-border: rgba(21, 128, 61, 0.28);
+  /* Secondary Action Buttons ("Accept", "Comment", "Inspect Source") */
+  --btn-secondary-bg: #F4F4F5;
+  --btn-secondary-color: #3F3F46;
+  --btn-secondary-border: #E4E4E7;
+  --btn-secondary-hover-bg: #EAEAEB;
+  --btn-secondary-hover-border: #D4D4D8;
 
-  --partial-color: #b45309;
-  --partial-bg: rgba(180, 83, 9, 0.10);
-  --partial-border: rgba(180, 83, 9, 0.28);
+  /* Verified / Supported Status Badge (Monochrome with checkmark, zero green) */
+  --supported-color: #18181B;
+  --supported-bg: #F4F4F5;
+  --supported-border: #D4D4D8;
 
-  --unsupported-color: #b91c1c;
-  --unsupported-bg: rgba(185, 28, 28, 0.10);
-  --unsupported-border: rgba(185, 28, 28, 0.28);
+  /* Warning / Needs Review Badge (Warm Amber) */
+  --needs-review-color: #B45309;
+  --needs-review-bg: #FEF3C7;
+  --needs-review-border: #F59E0B;
 
-  --contradictory-color: #be123c;
-  --contradictory-bg: rgba(190, 18, 60, 0.10);
-  --contradictory-border: rgba(190, 18, 60, 0.28);
+  --partial-color: #B45309;
+  --partial-bg: #FEF3C7;
+  --partial-border: #F59E0B;
 
-  --needs-review-color: #1d4ed8;
-  --needs-review-bg: rgba(29, 78, 216, 0.10);
-  --needs-review-border: rgba(29, 78, 216, 0.28);
+  --outdated-color: #B45309;
+  --outdated-bg: #FEF3C7;
+  --outdated-border: #F59E0B;
 
-  --outdated-color: #7c3aed;
-  --outdated-bg: rgba(124, 58, 237, 0.10);
-  --outdated-border: rgba(124, 58, 237, 0.28);
+  /* Contradictory / Critical Alert Badge (Crimson) */
+  --contradictory-color: #B91C1C;
+  --contradictory-bg: #FEE2E2;
+  --contradictory-border: #EF4444;
+
+  --unsupported-color: #B91C1C;
+  --unsupported-bg: #FEE2E2;
+  --unsupported-border: #EF4444;
+
+  /* Status Dot ("Demo Offline") - Warm Amber/Burnt Orange, Zero Green */
+  --status-demo-bg: #F4F4F5;
+  --status-demo-color: #3F3F46;
+  --status-demo-border: #E4E4E7;
+  --status-demo-dot: #EA580C;
+
+  /* Evidence Highlights - Zero Green/Blue */
+  --evidence-highlight-bg: rgba(24, 24, 27, 0.08);
+  --evidence-highlight-border: #D4D4D8;
 
   /* Shadows for Paper-like Depth */
   --shadow-sm: 0 1px 2px rgba(20, 24, 32, 0.05);
   --shadow-md: 0 4px 12px rgba(20, 24, 32, 0.07);
   --shadow-lg: 0 12px 28px rgba(20, 24, 32, 0.09);
-  --shadow-glow: 0 0 30px rgba(217, 88, 30, 0.08);
+  --shadow-glow: 0 0 30px rgba(234, 88, 12, 0.08);
 
   /* Ambient Glows */
-  --glow-top: radial-gradient(circle, rgba(217, 88, 30, 0.06) 0%, transparent 65%);
-  --glow-bottom: radial-gradient(circle, rgba(217, 88, 30, 0.04) 0%, transparent 65%);
+  --glow-top: radial-gradient(circle, rgba(234, 88, 12, 0.06) 0%, transparent 65%);
+  --glow-bottom: radial-gradient(circle, rgba(234, 88, 12, 0.04) 0%, transparent 65%);
 
   /* Code / Pre */
   --code-bg: #ecece6;
@@ -313,14 +351,15 @@ code, pre {
 }
 
 .btn-secondary {
-  background: var(--bg-surface-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border-line);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
+  border: 1px solid var(--btn-secondary-border);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-strong);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-hover-border);
+  color: var(--text-primary);
 }
 
 .btn-outline {
@@ -475,20 +514,22 @@ code, pre {
   gap: 10px;
 }
 
-/* Evidence text highlights */
+/* Evidence text highlights - Zero Green/Blue */
 .evidence-highlight {
-  background: rgba(74, 222, 128, 0.22);
+  background: var(--evidence-highlight-bg);
+  border: 1px solid var(--evidence-highlight-border);
   color: inherit;
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 2px 5px;
+  border-radius: 4px;
   font-weight: 600;
 }
 
 .unverified-evidence {
-  background: rgba(248, 113, 113, 0.16);
+  background: var(--unsupported-bg);
+  border: 1px solid var(--unsupported-border);
   color: inherit;
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 2px 5px;
+  border-radius: 4px;
 }
 
 /* --------------------------------------------------------------------------

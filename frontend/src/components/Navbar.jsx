@@ -160,17 +160,17 @@ export default function Navbar({
               padding: '6px 14px',
               borderRadius: '9999px',
               transition: 'all 0.2s ease',
-              background: 'rgba(74, 222, 128, 0.12)',
-              color: '#4ade80',
-              border: '1px solid rgba(74, 222, 128, 0.3)',
+              background: 'var(--status-demo-bg)',
+              color: 'var(--status-demo-color)',
+              border: '1px solid var(--status-demo-border)',
             }}
           >
             <span style={{
               width: '7px',
               height: '7px',
               borderRadius: '50%',
-              background: '#4ade80',
-              boxShadow: '0 0 8px #4ade80'
+              background: 'var(--status-demo-dot)',
+              boxShadow: '0 0 8px var(--status-demo-dot)'
             }} />
             <span>Demo (Offline)</span>
           </button>
