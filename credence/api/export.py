@@ -37,12 +37,38 @@ def generate_markdown_export(report: dict[str, Any]) -> str:
         f"- **Unsupported:** {summary.get('unsupported', 0)}",
         f"- **Needs Review:** {summary.get('needs_review', 0)}",
         f"- **Human Overrides:** {summary.get('human_overrides', 0)}",
+        f"- **Missing Citation Warnings:** {summary.get('missing_citations_count', len(report.get('missing_citations', [])))}",
         "",
         "---",
         "",
+    ]
+
+    missing_cits = report.get("missing_citations", [])
+    if missing_cits:
+        lines.extend([
+            "## Missing Citations & Bibliographic Diagnostics",
+            "",
+            "| Diagnostic Type | Subject / Marker | Location | Reason | Recommended Action |",
+            "|---|---|---|---|---|",
+        ])
+        for mc in missing_cits:
+            w_type = mc.get("warning_type", "diagnostic").replace("_", " ").title()
+            subj = mc.get("claim_text") or mc.get("citation_marker") or mc.get("claim_id") or "N/A"
+            if len(subj) > 75:
+                subj = subj[:72] + "..."
+            subj = subj.replace("|", "/")
+            pg = mc.get("page_number")
+            sec = mc.get("section_name")
+            loc = f"Page {pg}" if pg else (sec or mc.get("source_location") or "N/A")
+            reason = (mc.get("reason") or "").replace("|", "/")
+            rec = (mc.get("recommended_action") or "").replace("|", "/")
+            lines.append(f"| {w_type} | {subj} | {loc} | {reason} | {rec} |")
+        lines.extend(["", "---", ""])
+
+    lines.extend([
         "## Verified Empirical Claims",
         "",
-    ]
+    ])
 
     for idx, c in enumerate(claims, 1):
         cid = c.get("id", f"claim-{idx}")
@@ -271,6 +297,40 @@ def generate_html_export(report: dict[str, Any]) -> str:
 
     all_claims_html = "\n".join(claims_html_parts)
 
+    missing_citations = report.get("missing_citations", [])
+    missing_html_parts = []
+    if missing_citations:
+        for mc in missing_citations:
+            w_type = html.escape(str(mc.get("warning_type", "diagnostic")).replace("_", " ").title())
+            subj = html.escape(str(mc.get("claim_text") or mc.get("citation_marker") or mc.get("claim_id") or "N/A"))
+            pg = mc.get("page_number")
+            sec = html.escape(str(mc.get("section_name") or ""))
+            loc = f"Page {pg}" if pg else (sec or html.escape(str(mc.get("source_location") or "N/A")))
+            reason = html.escape(str(mc.get("reason") or ""))
+            action = html.escape(str(mc.get("recommended_action") or ""))
+            missing_html_parts.append(f"""
+            <div style="background: var(--panel); border: 1px solid rgba(240, 106, 44, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="badge" style="background: rgba(240, 106, 44, 0.2); color: var(--orange2);">{w_type}</span>
+                <span style="font-size: 11px; color: var(--muted);">{loc}</span>
+              </div>
+              <div style="font-weight: 600; color: #fff; margin-bottom: 6px;">"{subj}"</div>
+              <div style="font-size: 12px; color: #e3a93a; margin-bottom: 4px;"><strong>Diagnostic:</strong> {reason}</div>
+              <div style="font-size: 12px; color: #5aa9f0;"><strong>Recommended Action:</strong> {action}</div>
+            </div>
+            """)
+
+    missing_section_html = ""
+    if missing_html_parts:
+        missing_section_html = f"""
+        <div style="margin-top: 36px; margin-bottom: 24px;">
+          <h2 style="font-family: Georgia, serif; font-size: 20px; color: #fff; margin-bottom: 14px;">
+            ⚠️ Missing Citations & Bibliographic Diagnostics ({len(missing_citations)})
+          </h2>
+          {''.join(missing_html_parts)}
+        </div>
+        """
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -425,12 +485,15 @@ def generate_html_export(report: dict[str, Any]) -> str:
       <div class="summary-card"><div class="summary-num" style="color: #e3a93a;">{summary.get('partially_supported', 0)}</div><div class="summary-lbl">Partial</div></div>
       <div class="summary-card"><div class="summary-num" style="color: #e0574f;">{summary.get('contradictory', 0)}</div><div class="summary-lbl">Contradictory</div></div>
       <div class="summary-card"><div class="summary-num" style="color: #5aa9f0;">{summary.get('needs_review', 0)}</div><div class="summary-lbl">Needs Review</div></div>
+      <div class="summary-card"><div class="summary-num" style="color: #e3a93a;">{summary.get('missing_citations_count', len(missing_citations))}</div><div class="summary-lbl">Missing Cits</div></div>
       <div class="summary-card"><div class="summary-num" style="color: var(--orange2);">{summary.get('human_overrides', 0)}</div><div class="summary-lbl">Overrides</div></div>
     </div>
 
     <div class="claims-list">
       {all_claims_html}
     </div>
+
+    {missing_section_html}
   </div>
 </body>
 </html>

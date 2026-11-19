@@ -207,6 +207,32 @@ def export_report_endpoint(
         )
 
 
+@router.get("/report/{report_id}/missing-citations")
+def get_report_missing_citations_router(report_id: str) -> dict[str, Any]:
+    """Retrieve missing citation diagnostic warnings for a verified report (Requirement 6)."""
+    import credence.server as srv
+
+    rep: Optional[dict[str, Any]] = None
+    if report_id in ("demo-report-1", "demo", "sample", "default"):
+        rep = srv.REPORTS_STORE.get("demo-report-1") or srv._generate_demo_report()
+    else:
+        rep = srv.REPORTS_STORE.get(report_id)
+
+    if not rep:
+        raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found.")
+
+    rep_with_ledger = apply_ledger_to_report(dict(rep))
+    warnings = rep_with_ledger.get("missing_citations", [])
+    return {
+        "status": "ok",
+        "report_id": report_id,
+        "document_name": rep_with_ledger.get("document_name", ""),
+        "total_warnings": len(warnings),
+        "missing_citations": warnings,
+        "summary": rep_with_ledger.get("summary", {}),
+    }
+
+
 @router.get("/report/{report_id}/claims/{claim_id}/source")
 @router.get("/claims/{claim_id}/source")
 def inspect_source_evidence(claim_id: str, report_id: Optional[str] = None) -> dict[str, Any]:

@@ -15,7 +15,7 @@ from typing import Any, Optional
 @dataclass
 class Reference:
     """Structured representation of a bibliographic citation."""
-    raw_text: str
+    raw_text: str = ""
     key: Optional[str] = None  # e.g., '1', '4', 'Smith2020'
     doi: Optional[str] = None
     title: str = ""

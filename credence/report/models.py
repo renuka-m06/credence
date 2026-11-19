@@ -234,6 +234,9 @@ class Claim:
     verdict: Optional[Verdict] = None
     citation_classification: Optional[str] = None
     citation_audit: Optional[dict[str, Any]] = None
+    missing_citation_reason: Optional[str] = None
+    recommended_action: Optional[str] = None
+    has_missing_citation: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -253,6 +256,9 @@ class Claim:
             "verdict": self.verdict.to_dict() if self.verdict else None,
             "citation_classification": self.citation_classification,
             "citation_audit": self.citation_audit,
+            "missing_citation_reason": self.missing_citation_reason,
+            "recommended_action": self.recommended_action,
+            "has_missing_citation": self.has_missing_citation,
         }
         return data
 
@@ -278,7 +284,46 @@ class Claim:
             verdict=verdict,
             citation_classification=data.get("citation_classification"),
             citation_audit=data.get("citation_audit"),
+            missing_citation_reason=data.get("missing_citation_reason"),
+            recommended_action=data.get("recommended_action"),
+            has_missing_citation=bool(data.get("has_missing_citation", False)),
         )
+
+
+@dataclass
+class MissingCitationWarning:
+    """Diagnostic record for a missing, uncited, ambiguous, or incomplete citation."""
+    warning_type: str  # 'uncited_claim', 'missing_reference', 'uncited_reference', 'ambiguous_citation', 'incomplete_mapping'
+    reason: str
+    recommended_action: str
+    claim_id: Optional[str] = None
+    claim_text: Optional[str] = None
+    citation_marker: Optional[str] = None
+    page_number: Optional[int] = None
+    section_name: Optional[str] = None
+    source_location: Optional[str] = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def __getitem__(self, key: str) -> Any:
+        if hasattr(self, key):
+            return getattr(self, key)
+        return self.details.get(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if hasattr(self, key):
+            val = getattr(self, key)
+            return val if val is not None else default
+        return self.details.get(key, default)
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key) or (key in self.details)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MissingCitationWarning:
+        return cls(**data)
 
 
 @dataclass
@@ -289,6 +334,7 @@ class Report:
     access_tier: AccessTier = AccessTier.FULL_TEXT
     overall_confidence: float = 0.0
     summary: dict[str, Any] = field(default_factory=dict)
+    missing_citations: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -299,6 +345,10 @@ class Report:
             "access_tier": self.access_tier.value if isinstance(self.access_tier, Enum) else self.access_tier,
             "overall_confidence": self.overall_confidence,
             "summary": self.summary,
+            "missing_citations": [
+                (m.to_dict() if hasattr(m, "to_dict") else m)
+                for m in self.missing_citations
+            ],
             "metadata": self.metadata,
             "created_at": self.created_at,
         }
@@ -316,6 +366,7 @@ class Report:
             access_tier=tier,
             overall_confidence=float(data.get("overall_confidence", 0.0)),
             summary=data.get("summary", {}),
+            missing_citations=list(data.get("missing_citations", [])),
             metadata=data.get("metadata", {}),
             created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
         )

@@ -68,23 +68,59 @@ def verify_claim(
     # 1. Structure Claim and extract slots
     if isinstance(claim_input, str):
         claim_id = "claim-1"
-        slots = extract_slots(claim_input, claim_id=claim_id, citation_key=citation_key, llm_client=llm_client)
+        c_keys = [citation_key] if citation_key else []
+        slots = extract_slots(claim_input, claim_id=claim_id, citation_key=citation_key or "", llm_client=llm_client)
         claim = Claim(
             id=claim_id,
             text=claim_input,
-            citation_keys=[citation_key],
+            citation_keys=c_keys,
             source_location="Manuscript",
             slots=slots,
         )
     else:
         claim = claim_input
         if not claim.slots:
+            first_c = claim.citation_keys[0] if claim.citation_keys else (citation_key or "")
             claim.slots = extract_slots(
                 claim.text,
                 claim_id=claim.id,
-                citation_key=claim.citation_keys[0] if claim.citation_keys else citation_key,
+                citation_key=first_c,
                 llm_client=llm_client,
             )
+
+    # Missing Citation Detection check (Requirement 1, 7)
+    # If the claim has no citation keys or has been flagged with missing citation:
+    # Do not invent or assign any citation! Rule 1 & Rule 6: Deterministic verification fails,
+    # route to NEEDS_REVIEW with 0 confidence and MISSING CITATION audit.
+    if not claim.citation_keys or getattr(claim, "has_missing_citation", False):
+        claim.has_missing_citation = True
+        claim.citation_classification = "MISSING CITATION"
+        if not claim.missing_citation_reason:
+            claim.missing_citation_reason = "Empirical assertion presented without supporting citation marker."
+        if not claim.recommended_action:
+            claim.recommended_action = "Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis."
+
+        claim.verdict = Verdict(
+            claim_id=claim.id,
+            verdict=VerdictType.NEEDS_REVIEW,
+            confidence=0.0,
+            explanation=f"Missing citation: {claim.missing_citation_reason} Manual human review required.",
+            needs_review=True,
+            rules_triggered=["RULE_MISSING_CITATION"],
+            access_tier=AccessTier.INACCESSIBLE,
+        )
+        claim.citation_audit = {
+            "classification": "MISSING CITATION",
+            "reason": claim.missing_citation_reason,
+            "recommended_action": claim.recommended_action,
+            "missing_citation": True,
+            "claim_id": claim.id,
+            "claim_text": claim.text,
+            "source_location": claim.source_location,
+            "page_number": claim.page_number,
+            "section_name": claim.section_name,
+        }
+        return claim
 
     # 2. Check candidate paper integrity (retraction, correction, superseded, & secondary source 1-hop traversal)
     primary_hop_info: Optional[dict[str, Any]] = None
@@ -368,6 +404,7 @@ def build_report(
     claims: list[Claim],
     access_tier: Optional[AccessTier] = None,
     metadata: Optional[dict[str, Any]] = None,
+    missing_citations: Optional[list[Union[dict[str, Any], Any]]] = None,
 ) -> Report:
     """Wire verified claims into a comprehensive human-reviewable Report."""
     total = len(claims)
@@ -393,7 +430,22 @@ def build_report(
     misleading_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "MISLEADING CITATION")
     unrelated_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "UNRELATED CITATION")
     contradictory_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "CONTRADICTORY CITATION")
-    missing_cit_cnt = sum(1 for c in claims if getattr(c, "citation_classification", None) == "MISSING CITATION")
+    missing_cit_cnt = sum(1 for c in claims if (getattr(c, "citation_classification", None) == "MISSING CITATION" or getattr(c, "has_missing_citation", False)))
+
+    # Process missing_citations warnings
+    formatted_missing: list[dict[str, Any]] = []
+    if missing_citations:
+        for m in missing_citations:
+            if hasattr(m, "to_dict"):
+                formatted_missing.append(m.to_dict())
+            elif isinstance(m, dict):
+                formatted_missing.append(m)
+
+    uncited_claims_cnt = sum(1 for m in formatted_missing if m.get("warning_type") == "uncited_claim")
+    missing_ref_cnt = sum(1 for m in formatted_missing if m.get("warning_type") == "missing_reference")
+    uncited_ref_cnt = sum(1 for m in formatted_missing if m.get("warning_type") == "uncited_reference")
+    ambiguous_cnt = sum(1 for m in formatted_missing if m.get("warning_type") == "ambiguous_citation")
+    incomplete_cnt = sum(1 for m in formatted_missing if m.get("warning_type") == "incomplete_mapping")
 
     summary = {
         "total_claims": total,
@@ -407,7 +459,21 @@ def build_report(
         "unrelated_citations": unrelated_cit_cnt,
         "contradictory_citations": contradictory_cit_cnt,
         "missing_citations": missing_cit_cnt,
-        "human_review_required": review_cnt > 0 or partial_cnt > 0 or contradictory_cnt > 0 or misleading_cit_cnt > 0 or contradictory_cit_cnt > 0,
+        "missing_citations_count": len(formatted_missing),
+        "uncited_claims": uncited_claims_cnt,
+        "missing_in_bibliography": missing_ref_cnt,
+        "uncited_in_bibliography": uncited_ref_cnt,
+        "ambiguous_citations": ambiguous_cnt,
+        "incomplete_mappings": incomplete_cnt,
+        "human_review_required": (
+            review_cnt > 0
+            or partial_cnt > 0
+            or contradictory_cnt > 0
+            or misleading_cit_cnt > 0
+            or contradictory_cit_cnt > 0
+            or missing_cit_cnt > 0
+            or len(formatted_missing) > 0
+        ),
     }
 
     return Report(
@@ -416,5 +482,6 @@ def build_report(
         access_tier=access_tier,
         overall_confidence=round(avg_conf, 4),
         summary=summary,
+        missing_citations=formatted_missing,
         metadata=metadata or {},
     )

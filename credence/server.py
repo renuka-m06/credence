@@ -26,7 +26,7 @@ from credence.ingest.citations import map_citations
 from credence.ingest.claims import extract_claims
 from credence.ingest.parse import parse_document
 from credence.report.ledger import apply_ledger_to_report, record_review
-from credence.report.models import AccessTier, Claim, Report, VerdictType
+from credence.report.models import AccessTier, Claim, Report, Verdict, VerdictType
 from credence.verify.pipeline import build_report, verify_claim
 
 app = FastAPI(
@@ -139,10 +139,91 @@ def _generate_demo_report() -> dict[str, Any]:
         sr.section_name = "Discussion"
         sr.source_location = "Discussion, page 4"
 
+    # Claim 4: Uncited empirical claim (Missing Citation)
+    c4 = Claim(
+        id="claim-4",
+        text="Myocardial apoptosis was attenuated by 42% under sustained normoxic perfusion without supplementary intervention.",
+        citation_keys=[],  # Requirement 7: Never automatically invent or assign citations
+        source_location="Results, page 2",
+        page_number=2,
+        section_name="Results",
+        has_missing_citation=True,
+        missing_citation_reason="Empirical assertion presented without supporting citation marker.",
+        recommended_action="Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis.",
+        citation_classification="MISSING CITATION",
+        citation_audit={
+            "classification": "MISSING CITATION",
+            "reason": "Empirical assertion presented without supporting citation marker.",
+            "recommended_action": "Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis.",
+            "missing_citation": True,
+            "claim_id": "claim-4",
+            "claim_text": "Myocardial apoptosis was attenuated by 42% under sustained normoxic perfusion without supplementary intervention.",
+            "source_location": "Results, page 2",
+            "page_number": 2,
+            "section_name": "Results",
+        },
+        verdict=Verdict(
+            claim_id="claim-4",
+            verdict=VerdictType.NEEDS_REVIEW,
+            confidence=0.0,
+            explanation="Missing citation: Empirical assertion presented without supporting citation marker. Manual human review required.",
+            needs_review=True,
+            rules_triggered=["RULE_MISSING_CITATION"],
+            access_tier=AccessTier.INACCESSIBLE,
+        ),
+    )
+
+    demo_missing_warnings = [
+        {
+            "warning_type": "uncited_claim",
+            "reason": "Empirical claim asserted without any supporting in-text citation marker.",
+            "recommended_action": "Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis.",
+            "claim_id": "claim-4",
+            "claim_text": c4.text,
+            "page_number": 2,
+            "section_name": "Results",
+            "source_location": "Results, page 2",
+            "details": {"empirical_marker": "percentage/rate: 42%"},
+        },
+        {
+            "warning_type": "missing_reference",
+            "reason": "In-text citation marker '[3]' has no matching entry in the document's bibliography/reference list.",
+            "recommended_action": "Add the full bibliographic reference for citation marker '[3]' to the bibliography.",
+            "citation_marker": "3",
+            "claim_text": "Prior histological surveys indicated consistent ventricular remodelling [3].",
+            "page_number": 1,
+            "section_name": "Introduction",
+            "source_location": "Introduction, page 1",
+            "details": {"missing_marker": "3"},
+        },
+        {
+            "warning_type": "uncited_reference",
+            "reason": "Reference exists in the bibliography but is never cited anywhere in the document text.",
+            "recommended_action": "Cite this reference in the relevant section or remove it from the bibliography.",
+            "citation_marker": "5",
+            "details": {"key": "5", "title": "Vasodilator efficacy in pre-clinical rodent models"},
+        },
+        {
+            "warning_type": "incomplete_mapping",
+            "reason": "Reference entry in bibliography lacks required bibliographic metadata (e.g. title or author/year).",
+            "recommended_action": "Complete the reference entry with full title, authors, year, and DOI.",
+            "citation_marker": "6",
+            "details": {"key": "6", "issue": "Missing publication year and author details"},
+        },
+        {
+            "warning_type": "ambiguous_citation",
+            "reason": "Citation marker '(Johnson, 2021)' matches multiple references in the bibliography.",
+            "recommended_action": "Disambiguate citations using letter suffixes (e.g., '2021a', '2021b') or unique reference keys.",
+            "citation_marker": "Johnson, 2021",
+            "details": {"candidate_titles": ["Therapeutic targets in ischaemia (Johnson 2021a)", "Cardiovascular biomakers (Johnson 2021b)"]},
+        },
+    ]
+
     report = build_report(
         document_name="sample_paper.pdf",
-        claims=[c1, c2, c3],
+        claims=[c1, c2, c3, c4],
         access_tier=AccessTier.FULL_TEXT,
+        missing_citations=demo_missing_warnings,
         metadata={"provenance": "data/demo/sample_paper.pdf"},
     )
     rep_dict = report.to_dict()
@@ -264,10 +345,20 @@ async def verify_document(
             )
             verified_claims.append(v_cl)
 
+        # Run missing citation audit across mapping, claims, text, and sections (Requirements 1-6)
+        from credence.ingest.citations import audit_missing_citations
+        missing_citation_warnings = audit_missing_citations(
+            mapping=mapping,
+            claims=verified_claims,
+            body_text=parsed_doc.text,
+            sections=parsed_doc.sections,
+        )
+
         report = build_report(
             document_name=file.filename,
             claims=verified_claims,
             access_tier=AccessTier.FULL_TEXT,
+            missing_citations=missing_citation_warnings,
             metadata={
                 "page_count": parsed_doc.metadata.get("page_count", 1),
                 "total_citations_mapped": len(mapping.mapped),
@@ -356,6 +447,30 @@ def review_claim(report_id: str, claim_id: str, action: ReviewAction):
     REPORTS_STORE[report_id] = updated_rep
 
     return {"status": "ok", "claim_id": clean_cid, "review": review_entry}
+
+
+@app.get("/report/{report_id}/missing-citations")
+def get_report_missing_citations(report_id: str):
+    """Retrieve missing citation diagnostic warnings for a verified report (Requirement 6)."""
+    report = None
+    if report_id in ("demo-report-1", "demo", "sample", "default"):
+        report = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+    else:
+        report = REPORTS_STORE.get(report_id)
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    rep_with_ledger = apply_ledger_to_report(dict(report))
+    warnings = rep_with_ledger.get("missing_citations", [])
+    return {
+        "status": "ok",
+        "report_id": report_id,
+        "document_name": rep_with_ledger.get("document_name", ""),
+        "total_warnings": len(warnings),
+        "missing_citations": warnings,
+        "summary": rep_with_ledger.get("summary", {}),
+    }
 
 
 # Mount built React frontend if present

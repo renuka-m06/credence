@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) {
   const [selectedClaimId, setSelectedClaimId] = useState(
@@ -164,9 +164,35 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
 
   const claims = report.claims;
 
+  // Harmonized missing citations warnings list (Requirement 6 & FRONTEND)
+  const allMissingWarnings = useMemo(() => {
+    const list = [...(report?.missing_citations || [])];
+    (report?.claims || []).forEach(c => {
+      if ((c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0) &&
+          !list.some(m => m.claim_id === c.id || (m.claim_text && m.claim_text === c.text))) {
+        list.push({
+          warning_type: 'uncited_claim',
+          claim_id: c.id,
+          claim_text: c.text,
+          page_number: c.page_number,
+          section_name: c.section_name || c.source_location,
+          source_location: c.source_location,
+          reason: c.missing_citation_reason || 'Empirical assertion presented without supporting citation marker.',
+          recommended_action: c.recommended_action || 'Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis.',
+          details: c.citation_audit || {},
+        });
+      }
+    });
+    return list;
+  }, [report]);
+
   // Count claims for each filter tab dynamically
   const countForFilter = (tab) => {
     if (tab === 'All') return claims.length;
+    if (tab === 'Missing citations') {
+      const claimCount = claims.filter(c => c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0).length;
+      return allMissingWarnings.length > 0 ? allMissingWarnings.length : claimCount;
+    }
     return claims.filter(c => {
       const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
       const isReview = vStr.includes('review') || c.verdict?.needs_review;
@@ -183,6 +209,9 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
   // Filter claims based on selected filter
   const filteredClaims = claims.filter(c => {
     if (filter === 'All') return true;
+    if (filter === 'Missing citations') {
+      return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
+    }
     const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
     const isReview = vStr.includes('review') || c.verdict?.needs_review;
     const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
@@ -339,7 +368,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
 
           {/* Counts, Confidence & Export */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <span className="verdict-badge verdict-supported">
                 Supported: {report.summary?.supported || 0}
               </span>
@@ -351,6 +380,19 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
               </span>
               <span className="verdict-badge verdict-needs-review">
                 Needs Review: {report.summary?.needs_review || 0}
+              </span>
+              <span
+                className="verdict-badge"
+                style={{
+                  background: 'rgba(227, 169, 58, 0.15)',
+                  color: '#e3a93a',
+                  border: '1px solid rgba(227, 169, 58, 0.3)',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setFilter('Missing citations')}
+                title="Filter by Missing Citations"
+              >
+                Missing Citations: {report.summary?.missing_citations_count ?? allMissingWarnings.length}
               </span>
             </div>
 
@@ -739,7 +781,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
           <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', marginRight: '6px' }}>
             FILTER CLAIMS:
           </span>
-          {['Needs review', 'All', 'Supported', 'Partial', 'Contradictory', 'Unsupported'].map(tab => {
+          {['Needs review', 'All', 'Supported', 'Partial', 'Contradictory', 'Unsupported', 'Missing citations'].map(tab => {
             const active = filter === tab;
             const count = countForFilter(tab);
             return (
@@ -749,6 +791,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                   setFilter(tab);
                   const matching = claims.filter(c => {
                     if (tab === 'All') return true;
+                    if (tab === 'Missing citations') return c.has_missing_citation || c.citation_classification === 'MISSING CITATION' || !c.citation_keys || c.citation_keys.length === 0;
                     const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
                     const isReview = vStr.includes('review') || c.verdict?.needs_review;
                     const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
@@ -921,6 +964,54 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                   "{selectedClaim.text}"
                 </h2>
               </div>
+
+              {/* Missing Citation Warning Banner (Requirements 1-7 & FRONTEND) */}
+              {(selectedClaim.has_missing_citation || selectedClaim.citation_classification === 'MISSING CITATION' || !selectedClaim.citation_keys || selectedClaim.citation_keys.length === 0) && (
+                <div style={{
+                  background: 'rgba(227, 169, 58, 0.08)',
+                  border: '1px solid rgba(227, 169, 58, 0.35)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  gap: '14px',
+                  alignItems: 'flex-start'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(227, 169, 58, 0.18)',
+                    color: '#e3a93a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    fontSize: '16px'
+                  }}>
+                    ⚠️
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#e3a93a' }}>
+                        Missing Citation Warning: Empirical Assertion Lacks Supporting Citation
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--muted)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--line)' }}>
+                        {selectedClaim.page_number !== null && selectedClaim.page_number !== undefined
+                          ? `Page ${selectedClaim.page_number}`
+                          : (selectedClaim.section_name || selectedClaim.source_location || 'Manuscript')}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.5, margin: '0 0 6px 0' }}>
+                      <strong style={{ color: '#e3a93a' }}>Reason: </strong>
+                      {selectedClaim.missing_citation_reason || 'Empirical claim asserted without any supporting in-text citation marker.'}
+                    </p>
+                    <p style={{ fontSize: '12.5px', color: '#5aa9f0', lineHeight: 1.5, margin: 0 }}>
+                      <strong>Recommended Action: </strong>
+                      {selectedClaim.recommended_action || 'Provide a peer-reviewed citation supporting this assertion or qualify as an author hypothesis.'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Source Inaccessible Banner (Never Crashes) */}
               {(selectedClaim.verdict?.access_tier === 'inaccessible' || selectedClaim.verdict?.access_tier === 'not_found' || selectedClaim.access_tier === 'inaccessible') && (
@@ -1684,6 +1775,197 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 </div>
               )}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* MISSING CITATIONS & BIBLIOGRAPHIC INTEGRITY SECTION (Requirement 6 & FRONTEND) */}
+      <div style={{
+        marginTop: '44px',
+        background: 'var(--panel)',
+        border: '1px solid var(--line)',
+        borderRadius: '16px',
+        padding: '28px 32px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '22px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '22px', fontWeight: '700', color: '#fff', margin: 0 }}>
+                Missing Citations & Bibliographic Diagnostics
+              </h3>
+              <span style={{
+                background: 'rgba(227, 169, 58, 0.15)',
+                color: '#e3a93a',
+                border: '1px solid rgba(227, 169, 58, 0.3)',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '700'
+              }}>
+                {allMissingWarnings.length} Detected
+              </span>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
+              Deterministic audit of uncited empirical assertions, missing reference entries, uncited bibliography items, and ambiguous mappings.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', background: 'var(--panel2)', border: '1px solid var(--line)', padding: '5px 12px', borderRadius: '6px', color: 'var(--muted)' }}>
+              Uncited Claims: <strong style={{ color: '#e3a93a' }}>{allMissingWarnings.filter(w => w.warning_type === 'uncited_claim').length}</strong>
+            </span>
+            <span style={{ fontSize: '11px', background: 'var(--panel2)', border: '1px solid var(--line)', padding: '5px 12px', borderRadius: '6px', color: 'var(--muted)' }}>
+              Missing in Bibliography: <strong style={{ color: '#ef6b6b' }}>{allMissingWarnings.filter(w => w.warning_type === 'missing_reference').length}</strong>
+            </span>
+            <span style={{ fontSize: '11px', background: 'var(--panel2)', border: '1px solid var(--line)', padding: '5px 12px', borderRadius: '6px', color: 'var(--muted)' }}>
+              Uncited References: <strong style={{ color: 'var(--faint)' }}>{allMissingWarnings.filter(w => w.warning_type === 'uncited_reference').length}</strong>
+            </span>
+            <span style={{ fontSize: '11px', background: 'var(--panel2)', border: '1px solid var(--line)', padding: '5px 12px', borderRadius: '6px', color: 'var(--muted)' }}>
+              Ambiguous / Incomplete: <strong style={{ color: '#5aa9f0' }}>{allMissingWarnings.filter(w => w.warning_type === 'ambiguous_citation' || w.warning_type === 'incomplete_mapping').length}</strong>
+            </span>
+          </div>
+        </div>
+
+        {allMissingWarnings.length === 0 ? (
+          <div style={{
+            background: 'var(--panel2)',
+            border: '1px solid rgba(95, 207, 106, 0.25)',
+            borderRadius: '10px',
+            padding: '24px',
+            textAlign: 'center',
+            color: 'var(--supported-color)',
+            fontSize: '13px'
+          }}>
+            ✓ Complete bibliographic integrity verified: all empirical assertions are paired with valid, unambiguous citations, and all references are cited in the manuscript text.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {allMissingWarnings.map((w, idx) => {
+              const typeLabels = {
+                uncited_claim: 'UNCITED CLAIM',
+                missing_reference: 'MISSING IN BIBLIOGRAPHY',
+                uncited_reference: 'UNCITED REFERENCE',
+                ambiguous_citation: 'AMBIGUOUS CITATION',
+                incomplete_mapping: 'INCOMPLETE MAPPING',
+              };
+              const badgeColors = {
+                uncited_claim: { bg: 'rgba(227, 169, 58, 0.15)', text: '#e3a93a', border: 'rgba(227, 169, 58, 0.3)' },
+                missing_reference: { bg: 'rgba(239, 107, 107, 0.15)', text: '#ef6b6b', border: 'rgba(239, 107, 107, 0.3)' },
+                uncited_reference: { bg: 'rgba(154, 156, 164, 0.15)', text: 'var(--muted)', border: 'var(--line)' },
+                ambiguous_citation: { bg: 'rgba(90, 169, 240, 0.15)', text: '#5aa9f0', border: 'rgba(90, 169, 240, 0.3)' },
+                incomplete_mapping: { bg: 'rgba(240, 106, 44, 0.15)', text: 'var(--orange2)', border: 'rgba(240, 106, 44, 0.3)' },
+              };
+              const bStyle = badgeColors[w.warning_type] || badgeColors.uncited_claim;
+              const pageDisplay = w.page_number !== null && w.page_number !== undefined
+                ? `Page ${w.page_number}`
+                : (w.section_name || w.source_location || 'Manuscript');
+
+              const subjectText = w.claim_text || (w.citation_marker ? `Citation marker: [${w.citation_marker}]` : (w.details?.title ? `Reference: "${w.details.title}"` : 'Empirical assertion'));
+
+              return (
+                <div
+                  key={`missing-warn-${idx}`}
+                  style={{
+                    background: 'var(--panel2)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '12px',
+                    padding: '20px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    transition: 'border-color 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{
+                        background: bStyle.bg,
+                        color: bStyle.text,
+                        border: `1px solid ${bStyle.border}`,
+                        fontSize: '10.5px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em'
+                      }}>
+                        {typeLabels[w.warning_type] || w.warning_type?.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {w.claim_id && (
+                        <span style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'monospace' }}>
+                          {w.claim_id.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: '11.5px',
+                      color: 'var(--muted)',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      padding: '3px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--line)',
+                      fontWeight: '600'
+                    }}>
+                      Location: {pageDisplay}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '14.5px', color: '#fff', fontWeight: '500', lineHeight: 1.5, fontStyle: 'italic' }}>
+                    "{subjectText}"
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '12px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    padding: '14px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--line)'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '10.5px', color: '#e3a93a', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        REASON FOR MISSING CITATION
+                      </span>
+                      <div style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.45 }}>
+                        {w.reason}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '10.5px', color: '#5aa9f0', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        RECOMMENDED ACTION
+                      </span>
+                      <div style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.45 }}>
+                        {w.recommended_action}
+                      </div>
+                    </div>
+                  </div>
+
+                  {w.claim_id && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setFilter('All');
+                          setSelectedClaimId(w.claim_id);
+                          window.scrollTo({ top: 300, behavior: 'smooth' });
+                        }}
+                        style={{
+                          fontSize: '11.5px',
+                          padding: '5px 14px',
+                          color: 'var(--orange2)',
+                          borderColor: 'rgba(240, 106, 44, 0.3)'
+                        }}
+                      >
+                        View Claim in Workbench →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
