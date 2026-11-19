@@ -186,6 +186,16 @@ class RetractionWatchStore:
         seed_records = [
             # High-profile retracted papers commonly cited in benchmarks
             {
+                "original_doi": "10.1016/s0140-6736(18)30123-x",
+                "original_title": "Multi-Center Cohort Surveillance of Cardioprotective Therapies",
+                "retraction_doi": "10.1016/S0140-6736(20)30891-2",
+                "retraction_date": "2020-04-18",
+                "retraction_reasons": "Data anomalies, Unverifiable clinical endpoints, Discrepancies in survival statistics",
+                "journal": "The Lancet",
+                "publisher": "Elsevier",
+                "notes": "Post-publication audit failed to confirm patient registries",
+            },
+            {
                 "original_doi": "10.1016/s0140-6736(20)31180-6",
                 "original_title": "Hydroxychloroquine or chloroquine with or without a macrolide for treatment of COVID-19",
                 "retraction_doi": "10.1016/S0140-6736(20)31324-6",

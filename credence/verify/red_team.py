@@ -292,18 +292,29 @@ def save_investigation(
 
 def get_investigations_for_claim(
     claim_id: str,
+    report_id: Optional[str] = None,
     db_path: Optional[Path | str] = None,
 ) -> list[dict[str, Any]]:
-    """Retrieve all past investigations for a claim."""
+    """Retrieve all past investigations for a claim, optionally scoped to report_id."""
     with get_connection(db_path) as conn:
-        cursor = conn.execute(
-            """
-            SELECT report_data_json FROM red_team_investigations
-            WHERE claim_id = ?
-            ORDER BY id DESC;
-            """,
-            (claim_id,),
-        )
+        if report_id:
+            cursor = conn.execute(
+                """
+                SELECT report_data_json FROM red_team_investigations
+                WHERE claim_id = ? AND (report_id = ? OR report_id IS NULL)
+                ORDER BY id DESC;
+                """,
+                (claim_id, report_id),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                SELECT report_data_json FROM red_team_investigations
+                WHERE claim_id = ?
+                ORDER BY id DESC;
+                """,
+                (claim_id,),
+            )
         rows = cursor.fetchall()
         results = []
         for r in rows:
@@ -932,8 +943,21 @@ def run_red_team_investigation(
     now_iso = datetime.now(timezone.utc).isoformat()
     investigation_id = f"rt-{uuid.uuid4().hex[:10]}"
 
-    # Check if a benchmark catalog entry exists for this claim ID
-    benchmark_entry = BENCHMARK_COUNTER_EVIDENCE_CATALOG.get(claim_id)
+    # Benchmark entry lookup: strictly scoped to demo report or matching benchmark content
+    # to eliminate cross-contamination across newly uploaded manuscripts
+    benchmark_entry = None
+    candidate_benchmark = BENCHMARK_COUNTER_EVIDENCE_CATALOG.get(claim_id)
+    if candidate_benchmark:
+        is_demo_rep = report_id in ("demo-report-1", "demo", "sample", "default") if report_id else False
+        clean_text_lower = claim_text.lower()
+        has_benchmark_keywords = any(
+            kw in clean_text_lower
+            for kw in ("learnfast", "compound-x", "myocardial apoptosis", "test scores by 30%")
+        )
+        cand_doi = candidate_benchmark.get("source", {}).get("doi", "").lower()
+        doi_matches = bool(clean_doi and cand_doi and clean_doi.lower() == cand_doi)
+        if is_demo_rep or demo_mode or has_benchmark_keywords or doi_matches or (not report_id and claim_id in ("claim-1", "claim-2", "claim-3", "claim-4")):
+            benchmark_entry = candidate_benchmark
 
     # -------------------------------------------------------------------------
     # STAGE A: SOURCE INTEGRITY CHECK

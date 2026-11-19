@@ -12,6 +12,18 @@ export default function ReportScreen({
   const [selectedClaimId, setSelectedClaimId] = useState(
     report?.claims?.[0]?.id || ''
   );
+
+  // Automatically synchronize selected claim when active report changes
+  useEffect(() => {
+    if (report?.claims && report.claims.length > 0) {
+      setSelectedClaimId(report.claims[0].id);
+    } else {
+      setSelectedClaimId('');
+    }
+    setReviewNote('');
+    setDiagFilter('all');
+    setFilter('Needs review');
+  }, [report?.id]);
   // Default filter MUST be "Needs review" according to AGENTS.md Golden Rule 6
   const [filter, setFilter] = useState('Needs review');
 

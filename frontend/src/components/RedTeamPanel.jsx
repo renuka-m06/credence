@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl, getAuthHeaders } from '../api';
 
 // Color token mappings for Evidence Dependency Graph & Status Badges
 const CATEGORY_COLORS = {
@@ -24,42 +25,63 @@ export default function RedTeamPanel({
   demoMode = true,
   theme = 'dark',
 }) {
-  const getInitialInvestigation = (c) => {
-    if (!c) return null;
-    const cid = c.id || 'claim-1';
-    const ctext = c.text || '';
-    const pdoi = c.doi || (c.slot_results?.[0]?.source_doi) || (c.citation_keys?.[0] === '1' ? '10.1056/NEJMoa1702345' : '10.1145/3065386');
-    const ptitle = c.paper_title || (c.slot_results?.[0]?.source_title) || 'Referenced Primary Literature';
-    const overdict = c.verdict?.display_verdict || c.verdict?.verdict || 'Needs review';
-    const oconf = c.verdict?.confidence || 0.5;
-    return generateClientFallbackInvestigation(cid, ctext, pdoi, ptitle, overdict, oconf);
-  };
-
   const [investigating, setInvestigating] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [investigationData, setInvestigationData] = useState(() => getInitialInvestigation(claim));
-  const [activeTab, setActiveTab] = useState('graph'); // Default directly to the Evidence Dependency Graph!
-  const [selectedNode, setSelectedNode] = useState(() => {
-    const init = getInitialInvestigation(claim);
-    return init?.dependency_graph?.nodes?.[0] || null;
-  });
+  const [investigationData, setInvestigationData] = useState(null);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('graph');
+  const [selectedNode, setSelectedNode] = useState(null);
   const [activeStageTab, setActiveStageTab] = useState('stage_a');
   const [copiedDossier, setCopiedDossier] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Automatically update and present the graph when the selected claim changes
+  // Sync investigation state when claim or reportId changes
   useEffect(() => {
-    if (claim) {
-      const init = getInitialInvestigation(claim);
-      setInvestigationData(init);
-      if (init?.dependency_graph?.nodes?.length > 0) {
-        setSelectedNode(init.dependency_graph.nodes[0]);
-      }
+    let isMounted = true;
+    if (!claim?.id) {
+      setInvestigationData(null);
+      setError(null);
+      setSelectedNode(null);
+      return;
     }
-    setActiveTab('graph');
+
+    const cid = claim.id;
+    const repId = reportId || 'demo-report-1';
+
+    // Reset current state to avoid showing stale data from previous claims
+    setInvestigationData(null);
+    setError(null);
+    setSelectedNode(null);
     setCurrentStageIndex(0);
     setInvestigating(false);
-  }, [claim?.id]);
+
+    // Retrieve any existing persistent audit from backend
+    fetch(apiUrl(`/api/redteam/investigations/${encodeURIComponent(cid)}?report_id=${encodeURIComponent(repId)}`), {
+      headers: getAuthHeaders(),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to retrieve past audit');
+        return res.json();
+      })
+      .then(data => {
+        if (!isMounted) return;
+        if (data?.investigations && data.investigations.length > 0) {
+          const latest = data.investigations[0];
+          setInvestigationData(latest);
+          setIsExpanded(true);
+          if (latest.dependency_graph?.nodes?.length > 0) {
+            setSelectedNode(latest.dependency_graph.nodes[0]);
+          }
+        }
+      })
+      .catch(() => {
+        // No past audit recorded; stays in Not Yet Investigated state
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [claim?.id, reportId]);
 
   if (!claim) return null;
 
@@ -79,10 +101,10 @@ export default function RedTeamPanel({
   ];
 
   const handleStartChallenge = async () => {
+    if (investigating) return; // Prevent duplicate requests
     setIsExpanded(true);
     setInvestigating(true);
-    setInvestigationData(null);
-    setSelectedNode(null);
+    setError(null);
     setCurrentStageIndex(0);
 
     // Live Stage Animation
@@ -98,9 +120,9 @@ export default function RedTeamPanel({
     const timer4 = setTimeout(() => advanceStage(4), 1400);
 
     try {
-      const response = await fetch('/api/redteam/challenge', {
+      const response = await fetch(apiUrl('/api/redteam/challenge'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
           claim_id: claimId,
           report_id: reportId || 'demo-report-1',
@@ -114,30 +136,38 @@ export default function RedTeamPanel({
         }),
       });
 
-      if (response.ok) {
-        const json = await response.json();
-        if (json.investigation) {
-          setTimeout(() => {
-            setInvestigationData(json.investigation);
-            setInvestigating(false);
-            if (json.investigation.dependency_graph?.nodes?.length > 0) {
-              setSelectedNode(json.investigation.dependency_graph.nodes[0]);
-            }
-          }, 1600);
-          return;
-        }
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+
+      if (!response.ok) {
+        let errDetail = `API challenge request failed (${response.status})`;
+        try {
+          const errJson = await response.json();
+          errDetail = errJson.detail || errJson.message || errDetail;
+        } catch {}
+        throw new Error(errDetail);
       }
-      throw new Error('API challenge request failed');
+
+      const json = await response.json();
+      if (!json.investigation) {
+        throw new Error('API returned empty investigation response');
+      }
+
+      setInvestigationData(json.investigation);
+      setInvestigating(false);
+      setError(null);
+      if (json.investigation.dependency_graph?.nodes?.length > 0) {
+        setSelectedNode(json.investigation.dependency_graph.nodes[0]);
+      }
     } catch (err) {
-      // Offline fallback: load deterministic benchmark catalog directly
-      setTimeout(() => {
-        const fallback = generateClientFallbackInvestigation(claimId, claimText, paperDoi, paperTitle, originalVerdict, originalConfidence);
-        setInvestigationData(fallback);
-        setInvestigating(false);
-        if (fallback.dependency_graph?.nodes?.length > 0) {
-          setSelectedNode(fallback.dependency_graph.nodes[0]);
-        }
-      }, 1650);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      setInvestigating(false);
+      setError(err.message || 'Adversarial investigation could not be completed.');
     }
   };
 
@@ -227,55 +257,241 @@ export default function RedTeamPanel({
           </div>
         </div>
 
-        {/* Action Button */}
-        <div>
-          <button
-            onClick={handleStartChallenge}
-            disabled={investigating}
-            className="btn btn-primary"
-            style={{
-              background: investigating ? 'var(--bg-surface-subtle)' : 'linear-gradient(135deg, #ef6b6b 0%, #f06a2c 100%)',
-              borderColor: 'transparent',
-              color: '#ffffff',
-              fontWeight: '600',
-              padding: '9px 20px',
-              boxShadow: '0 4px 14px rgba(239, 107, 107, 0.25)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '9px',
-            }}
-          >
-            {investigating ? (
-              <>
-                <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-                Auditing Claim Integrity...
-              </>
-            ) : investigationData ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M23 4v6h-6"/>
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-                Re-Run Adversarial Audit
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                Run Adversarial Audit
-              </>
-            )}
-          </button>
+        {/* Header Action Button & Timestamp */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {investigationData && investigationData.created_at && !investigating && (
+            <span style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+              Last Audited: {new Date(investigationData.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, {new Date(investigationData.created_at).toLocaleDateString()}
+            </span>
+          )}
+
+          {investigating ? (
+            <button
+              disabled
+              className="btn btn-secondary"
+              style={{
+                opacity: 0.85,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '9px',
+                padding: '9px 18px',
+                fontSize: '13px',
+                fontWeight: '600',
+              }}
+            >
+              <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              Auditing Claim Integrity...
+            </button>
+          ) : investigationData ? (
+            <button
+              onClick={handleStartChallenge}
+              className="btn btn-secondary btn-sm"
+              title="Re-run adversarial investigation on this claim"
+              style={{
+                fontSize: '12.5px',
+                padding: '7px 15px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: '600',
+                border: '1px solid var(--border-line)',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M23 4v6h-6"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              Re-Run Adversarial Audit
+            </button>
+          ) : (
+            <button
+              onClick={handleStartChallenge}
+              className="btn btn-primary"
+              style={{
+                background: 'linear-gradient(135deg, #ef6b6b 0%, #f06a2c 100%)',
+                borderColor: 'transparent',
+                color: '#ffffff',
+                fontWeight: '700',
+                padding: '10px 22px',
+                fontSize: '13.5px',
+                boxShadow: '0 4px 16px rgba(239, 107, 107, 0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '9px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Run Adversarial Audit
+            </button>
+          )}
         </div>
       </div>
 
       {/* ====================================================================
-          2. LIVE 5-STAGE PROGRESS BAR (During active investigation)
+          2. ERROR / FAILURE BANNER (Investigation Failed State)
+          ==================================================================== */}
+      {error && !investigating && (
+        <div style={{
+          padding: '24px 28px',
+          background: 'rgba(239, 107, 107, 0.08)',
+          borderBottom: '1px solid rgba(239, 107, 107, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(239, 107, 107, 0.2)',
+              color: '#ef6b6b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#ef6b6b' }}>
+                Adversarial Audit Failed
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                {error}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleStartChallenge}
+            className="btn btn-primary btn-sm"
+            style={{
+              background: '#ef6b6b',
+              borderColor: '#ef6b6b',
+              color: '#ffffff',
+              fontWeight: '600',
+              padding: '8px 18px',
+            }}
+          >
+            Retry Adversarial Audit
+          </button>
+        </div>
+      )}
+
+      {/* ====================================================================
+          3. NOT YET INVESTIGATED INITIAL STATE
+          ==================================================================== */}
+      {!investigating && !investigationData && !error && (
+        <div style={{
+          padding: '28px 28px',
+          background: 'var(--bg-surface)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '18px',
+          }}>
+            <div style={{ maxWidth: '680px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  background: 'rgba(90, 169, 240, 0.14)',
+                  color: '#5aa9f0',
+                  padding: '3px 9px',
+                  borderRadius: '5px',
+                  border: '1px solid rgba(90, 169, 240, 0.35)',
+                }}>
+                  Status: Not Yet Audited
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                  Selected Claim: <code>{claimId}</code>
+                </span>
+              </div>
+              <h4 style={{ fontSize: '15.5px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px', lineHeight: 1.4 }}>
+                Adversarial Verification Ready for Execution
+              </h4>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                This assertion has not yet undergone independent adversarial auditing. Run the audit to cross-examine cited literature against retraction databases, scan for contradictory replication studies, and flag numerical discrepancies.
+              </p>
+            </div>
+
+            <button
+              onClick={handleStartChallenge}
+              className="btn btn-primary"
+              style={{
+                background: 'linear-gradient(135deg, #ef6b6b 0%, #f06a2c 100%)',
+                borderColor: 'transparent',
+                color: '#ffffff',
+                fontWeight: '700',
+                padding: '11px 22px',
+                fontSize: '13.5px',
+                boxShadow: '0 4px 14px rgba(239, 107, 107, 0.25)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '9px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Run Adversarial Audit
+            </button>
+          </div>
+
+          {/* 5-Stage Scope Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '10px',
+            marginTop: '4px',
+          }}>
+            {stagesList.map((st) => (
+              <div key={st.key} style={{
+                padding: '10px 12px',
+                borderRadius: '8px',
+                background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-line)',
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-orange)', marginBottom: '3px' }}>
+                  {st.title}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: 1.35 }}>
+                  {st.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          4. LIVE 5-STAGE PROGRESS BAR (During active investigation)
           ==================================================================== */}
       {investigating && (
         <div style={{ padding: '32px 28px', background: 'var(--bg-surface)' }}>

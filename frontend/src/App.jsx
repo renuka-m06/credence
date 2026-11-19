@@ -207,13 +207,20 @@ export default function App() {
     fetch(apiUrl('/demo/report'), { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(data => {
-        setReport(data || FALLBACK_DEMO_REPORT);
+        const finalRep = data || FALLBACK_DEMO_REPORT;
+        setReport(finalRep);
+        if (typeof window !== 'undefined' && finalRep.id) {
+          sessionStorage.setItem('credence_active_report_id', finalRep.id);
+        }
         setCurrentScreen('report');
         setLoading(false);
         setLoadingProgress('');
       })
       .catch(() => {
         setReport(FALLBACK_DEMO_REPORT);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('credence_active_report_id', FALLBACK_DEMO_REPORT.id);
+        }
         setCurrentScreen('report');
         setLoading(false);
         setLoadingProgress('');
@@ -263,6 +270,9 @@ export default function App() {
       })
       .then(data => {
         setReport(data);
+        if (data?.id && typeof window !== 'undefined') {
+          sessionStorage.setItem('credence_active_report_id', data.id);
+        }
         setCurrentScreen('report');
         setLoading(false);
         setLoadingProgress('');
@@ -277,6 +287,9 @@ export default function App() {
           // In offline demo mode: serve cached demo report with zero live API calls
           const offlineRep = { ...FALLBACK_DEMO_REPORT, document_name: file.name };
           setReport(offlineRep);
+          if (offlineRep?.id && typeof window !== 'undefined') {
+            sessionStorage.setItem('credence_active_report_id', offlineRep.id);
+          }
           setCurrentScreen('report');
         } else {
           setErrorMessage(
@@ -447,7 +460,24 @@ export default function App() {
         )}
         {currentScreen === 'reports' && (
           <ReportsHistoryScreen
-            onSelectReport={(rep) => {
+            onSelectReport={async (rep) => {
+              if (!rep) return;
+              if (rep.id && rep.id !== 'demo-report-1') {
+                try {
+                  const res = await fetch(apiUrl(`/report/${rep.id}`), { headers: getAuthHeaders() });
+                  if (res.ok) {
+                    const fullDossier = await res.json();
+                    setReport(fullDossier);
+                    if (typeof window !== 'undefined') {
+                      sessionStorage.setItem('credence_active_report_id', fullDossier.id);
+                    }
+                    setCurrentScreen('report');
+                    return;
+                  }
+                } catch (e) {
+                  console.warn('Fallback to archive report object:', e);
+                }
+              }
               setReport(rep);
               if (rep.id && typeof window !== 'undefined') {
                 sessionStorage.setItem('credence_active_report_id', rep.id);

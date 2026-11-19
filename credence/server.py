@@ -600,12 +600,29 @@ def challenge_claim(req: RedTeamChallengeRequest):
 
 @app.get("/api/redteam/investigations/{claim_id}")
 @app.get("/redteam/investigations/{claim_id}")
-def get_redteam_investigations(claim_id: str):
-    """Retrieve past adversarial investigations for a claim."""
-    results = get_investigations_for_claim(claim_id)
+def get_redteam_investigations(claim_id: str, report_id: Optional[str] = None):
+    """Retrieve past adversarial investigations for a claim, scoped to report_id if provided."""
+    clean_cid = str(claim_id or "").strip()
+    clean_rid = str(report_id).strip() if report_id else None
+    results = get_investigations_for_claim(clean_cid, report_id=clean_rid)
     return {
         "status": "ok",
-        "claim_id": claim_id,
+        "claim_id": clean_cid,
+        "report_id": clean_rid,
+        "investigations": results,
+    }
+
+
+@app.get("/report/{report_id}/claims/{claim_id}/redteam")
+def get_claim_redteam_investigation(report_id: str, claim_id: str):
+    """Retrieve adversarial investigations for a specific claim within a dossier."""
+    clean_cid = str(claim_id or "").strip()
+    clean_rid = str(report_id or "").strip()
+    results = get_investigations_for_claim(clean_cid, report_id=clean_rid)
+    return {
+        "status": "ok",
+        "report_id": clean_rid,
+        "claim_id": clean_cid,
         "investigations": results,
     }
 

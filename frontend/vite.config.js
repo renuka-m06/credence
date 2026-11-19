@@ -6,6 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/api': 'http://localhost:8000',
+      '/redteam': 'http://localhost:8000',
       '/verify': 'http://localhost:8000',
       '/report': 'http://localhost:8000',
       '/claims': 'http://localhost:8000',
