@@ -29,7 +29,6 @@ Covers:
    - Active, unretracted paper maintains standard empirical verdict
 """
 
-import pytest
 
 from credence.report.models import AccessTier, VerdictType
 from credence.resolve.matcher import CandidatePaper

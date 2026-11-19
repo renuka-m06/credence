@@ -15,7 +15,7 @@ Golden Rules (AGENTS.md):
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Union, Optional
 
 from credence.report.models import AccessTier, SlotResult, Verdict, VerdictType
 

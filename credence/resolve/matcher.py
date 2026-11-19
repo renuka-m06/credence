@@ -17,6 +17,7 @@ from credence.resolve.reference import Reference
 
 # Optional rapidfuzz import with robust pure-Python fallback
 try:
+    # pyrefly: ignore[missing-import]
     from rapidfuzz import fuzz
     HAS_RAPIDFUZZ = True
 except ImportError:
