@@ -18,6 +18,7 @@ google-genai>=0.1.0
 # Web Backend, Storage & Security
 fastapi>=0.110.0,<1.0.0
 uvicorn[standard]>=0.28.0,<1.0.0
+gunicorn>=21.2.0,<24.0.0
 python-multipart>=0.0.9,<1.0.0
 python-dotenv>=1.0.0,<2.0.0
 pyjwt>=2.8.0,<3.0.0
