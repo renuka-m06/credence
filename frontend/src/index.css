@@ -331,3 +331,43 @@ h1, h2, h3, .serif-heading {
   border-radius: 10px;
   padding: 16px 20px;
 }
+
+/* Responsive Grid & Containers */
+.workbench-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.benchmark-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .workbench-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .benchmark-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-container {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .summary-strip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .data-table th, .data-table td {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+}

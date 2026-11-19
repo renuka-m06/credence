@@ -7,7 +7,8 @@ export default function HomeScreen({
   loadingProgress,
   errorMessage,
   onClearError,
-  onForceError
+  onForceError,
+  demoMode
 }) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -230,6 +231,25 @@ export default function HomeScreen({
               <p style={{ fontSize: '12px', color: 'var(--faint)', marginBottom: '20px' }}>
                 Supports academic research papers, clinical reports, and grant proposals
               </p>
+
+              {demoMode && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(95, 207, 106, 0.1)',
+                  color: 'var(--supported-color)',
+                  border: '1px solid rgba(95, 207, 106, 0.3)',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  marginBottom: '16px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--supported-color)' }} />
+                  Demo Mode Active: Serving pre-cached results from data/demo/ (0 live API calls)
+                </div>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>

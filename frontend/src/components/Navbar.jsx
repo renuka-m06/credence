@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Navbar({ currentScreen, setCurrentScreen }) {
+export default function Navbar({ currentScreen, setCurrentScreen, demoMode, onToggleDemoMode }) {
   return (
     <header style={{
       borderBottom: '1px solid var(--line)',
@@ -11,7 +11,7 @@ export default function Navbar({ currentScreen, setCurrentScreen }) {
       zIndex: 50,
       padding: '14px 0'
     }}>
-      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="container navbar-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Brand with Seal Badge */}
         <div 
           onClick={() => setCurrentScreen('home')}
@@ -87,23 +87,35 @@ export default function Navbar({ currentScreen, setCurrentScreen }) {
           })}
         </nav>
 
-        {/* Engine Status Pill */}
+        {/* Demo Mode Toggle & Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '11px',
-            fontWeight: '600',
-            color: 'var(--supported-color)',
-            background: 'rgba(95, 207, 106, 0.08)',
-            padding: '5px 10px',
-            borderRadius: '20px',
-            border: '1px solid rgba(95, 207, 106, 0.2)'
-          }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--supported-color)' }} />
-            Zero Live API Mode
-          </div>
+          <button
+            onClick={() => onToggleDemoMode?.()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              color: demoMode ? 'var(--supported-color)' : 'var(--muted)',
+              background: demoMode ? 'rgba(95, 207, 106, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              border: demoMode ? '1px solid rgba(95, 207, 106, 0.35)' : '1px solid var(--line)',
+              transition: 'all 0.2s ease'
+            }}
+            title={demoMode ? "Demo Mode ON: Serving pre-cached results from data/demo/ with zero live API calls" : "Demo Mode OFF: Live verification pipeline"}
+          >
+            <span style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: demoMode ? 'var(--supported-color)' : 'var(--faint)',
+              boxShadow: demoMode ? '0 0 8px var(--supported-color)' : 'none'
+            }} />
+            <span>Demo Mode: <strong style={{ color: demoMode ? '#fff' : 'var(--ink)' }}>{demoMode ? 'ON (Offline)' : 'OFF (Live)'}</strong></span>
+          </button>
         </div>
       </div>
     </header>

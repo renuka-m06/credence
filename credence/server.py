@@ -137,13 +137,30 @@ def get_demo_report():
 
 
 @app.post("/verify")
-async def verify_document(file: UploadFile = File(...), force_error: bool = False):
+async def verify_document(
+    file: UploadFile = File(...),
+    force_error: bool = False,
+    demo_mode: bool = False,
+):
     """Upload PDF or DOCX manuscript and run complete verification pipeline."""
     if force_error:
         raise HTTPException(
             status_code=500,
             detail="Verification pipeline forced error: Academic database retrieval gateway timed out."
         )
+
+    if demo_mode:
+        # Fully offline demo mode: serve pre-cached verification results from data/demo with zero external API calls
+        rep = REPORTS_STORE.get("demo-report-1") or _generate_demo_report()
+        cached = dict(rep)
+        cached["document_name"] = file.filename
+        cached_id = f"demo-mode-{uuid.uuid4().hex[:8]}"
+        cached["id"] = cached_id
+        cached["report_id"] = cached_id
+        cached["offline_demo_mode"] = True
+        cached_with_ledger = apply_ledger_to_report(cached)
+        REPORTS_STORE[cached_id] = cached_with_ledger
+        return cached_with_ledger
 
     suffix = Path(file.filename).suffix.lower()
     if suffix not in (".pdf", ".docx", ".doc"):

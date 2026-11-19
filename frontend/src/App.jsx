@@ -144,6 +144,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
+  const [demoMode, setDemoMode] = useState(true); // Default to offline demo mode (no live external API calls)
+
+  const handleToggleDemoMode = () => {
+    setDemoMode(prev => !prev);
+  };
 
   useEffect(() => {
     // Fetch live demo report from backend if available
@@ -197,8 +202,9 @@ export default function App() {
 
     const formData = new FormData();
     formData.append('file', file);
+    const verifyUrl = demoMode ? '/verify?demo_mode=true' : '/verify';
 
-    fetch('/verify', {
+    fetch(verifyUrl, {
       method: 'POST',
       body: formData,
     })
@@ -230,9 +236,16 @@ export default function App() {
         clearTimeout(timer3);
         setLoading(false);
         setLoadingProgress('');
-        setErrorMessage(
-          `Verification Notice: ${err.message}. Please check that the file is an academic .pdf or .docx, or run the demo sample paper.`
-        );
+        if (demoMode) {
+          // In offline demo mode: serve cached demo report with zero live API calls
+          const offlineRep = { ...FALLBACK_DEMO_REPORT, document_name: file.name };
+          setReport(offlineRep);
+          setCurrentScreen('report');
+        } else {
+          setErrorMessage(
+            `Verification Notice: ${err.message}. Please check that the file is an academic .pdf or .docx, or run the demo sample paper.`
+          );
+        }
       });
   };
 
@@ -296,7 +309,12 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Navbar currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+      <Navbar
+        currentScreen={currentScreen}
+        setCurrentScreen={setCurrentScreen}
+        demoMode={demoMode}
+        onToggleDemoMode={handleToggleDemoMode}
+      />
       
       <main style={{ flex: 1 }}>
         {currentScreen === 'home' && (
@@ -308,6 +326,7 @@ export default function App() {
             errorMessage={errorMessage}
             onClearError={handleClearError}
             onForceError={handleForceError}
+            demoMode={demoMode}
           />
         )}
         {currentScreen === 'report' && (

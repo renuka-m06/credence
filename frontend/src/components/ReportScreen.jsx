@@ -15,6 +15,67 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
   const [auditTab, setAuditTab] = useState('claim'); // 'claim' or 'global'
   const [globalAudit, setGlobalAudit] = useState([]);
   const [loadingGlobalAudit, setLoadingGlobalAudit] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  const handleExportDownload = (fmt) => {
+    if (fmt === 'print') {
+      setShowExportModal(false);
+      window.print();
+      return;
+    }
+    const reportId = report?.id || 'demo-report-1';
+    const exportUrl = `/report/${reportId}/export?format=${fmt}`;
+    fetch(exportUrl)
+      .then(res => {
+        if (!res.ok) throw new Error('API export unavailable');
+        return res.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = fmt === 'markdown' ? 'md' : fmt;
+        const cleanName = (report?.document_name || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `credence_${cleanName}_export.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setShowExportModal(false);
+        setReviewNote(`Report exported as .${ext}`);
+      })
+      .catch(() => {
+        // Fallback file generation if backend endpoint unreachable
+        let content = '';
+        let mime = 'text/plain';
+        let ext = fmt === 'markdown' ? 'md' : fmt;
+        if (fmt === 'json') {
+          content = JSON.stringify(report, null, 2);
+          mime = 'application/json';
+        } else if (fmt === 'markdown' || fmt === 'md') {
+          content = `# Credence Scientific Verification Dossier\nDocument: ${report?.document_name}\nConfidence: ${((report?.overall_confidence || 0) * 100).toFixed(0)}%\n\n`;
+          (report?.claims || []).forEach(c => {
+            content += `### ${c.id}: "${c.text}"\n- Verdict: ${c.verdict?.display_verdict || c.verdict?.verdict}\n- Confidence: ${((c.verdict?.confidence || 0) * 100).toFixed(0)}%\n\n`;
+          });
+          mime = 'text/markdown';
+        } else {
+          content = `<!DOCTYPE html><html><head><title>${report?.document_name}</title></head><body style="background:#0b0b0e;color:#edeef1;font-family:sans-serif;padding:30px;"><h1>${report?.document_name}</h1><p>Confidence: ${((report?.overall_confidence || 0) * 100).toFixed(0)}%</p></body></html>`;
+          mime = 'text/html';
+        }
+        const blob = new Blob([content], { type: mime });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const cleanName = (report?.document_name || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `credence_${cleanName}_export.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setShowExportModal(false);
+        setReviewNote(`Report exported as .${ext}`);
+      });
+  };
 
   if (!report || !report.claims || report.claims.length === 0) {
     return (
@@ -149,7 +210,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
     <div style={{ padding: '36px 0 80px' }}>
       <div className="container">
         {/* SUMMARY STRIP */}
-        <div style={{
+        <div className="summary-strip" style={{
           background: 'var(--panel)',
           border: '1px solid var(--line)',
           borderRadius: '14px',
@@ -185,7 +246,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
             </p>
           </div>
 
-          {/* Counts & Confidence */}
+          {/* Counts, Confidence & Export */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               <span className="verdict-badge verdict-supported">
@@ -221,8 +282,115 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
                 }} />
               </div>
             </div>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowExportModal(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                borderColor: 'rgba(240, 106, 44, 0.4)',
+                color: 'var(--orange2)',
+                padding: '7px 14px'
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export Report
+            </button>
           </div>
         </div>
+
+        {/* Export Report Modal */}
+        {showExportModal && (
+          <div style={{
+            background: 'var(--panel2)',
+            border: '1px solid var(--orange)',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 32px rgba(240, 106, 44, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', color: '#fff', fontWeight: '700' }}>
+                  Export Credence Verification Dossier
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                  Download evidence-backed, human-reviewable dossiers in academic and archival formats.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowExportModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--faint)', cursor: 'pointer', fontSize: '16px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '12px'
+            }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExportDownload('html')}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', textAlign: 'left', justifyContent: 'flex-start' }}
+              >
+                <span style={{ fontSize: '20px' }}>📄</span>
+                <div>
+                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Annotated HTML Dossier</div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Styled report with print-to-PDF</div>
+                </div>
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExportDownload('markdown')}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', textAlign: 'left', justifyContent: 'flex-start' }}
+              >
+                <span style={{ fontSize: '20px' }}>📝</span>
+                <div>
+                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Academic Markdown (.md)</div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Table format for peer review</div>
+                </div>
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExportDownload('json')}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', textAlign: 'left', justifyContent: 'flex-start' }}
+              >
+                <span style={{ fontSize: '20px' }}>📦</span>
+                <div>
+                  <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Evidence JSON (.json)</div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Full machine-readable ledger</div>
+                </div>
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => handleExportDownload('print')}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', textAlign: 'left', justifyContent: 'flex-start' }}
+              >
+                <span style={{ fontSize: '20px' }}>🖨️</span>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '13px' }}>Print / Save as PDF</div>
+                  <div style={{ fontSize: '11px', opacity: 0.9 }}>Direct browser PDF render</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* FILTER BAR (Default: Needs review) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px', flexWrap: 'wrap' }}>
@@ -285,7 +453,7 @@ export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) 
         </div>
 
         {/* TWO-COLUMN WORKBENCH */}
-        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="workbench-grid">
           {/* LEFT: CLAIM LIST */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {filteredClaims.length === 0 ? (
