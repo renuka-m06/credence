@@ -737,6 +737,15 @@ code, pre {
 /* --------------------------------------------------------------------------
    14. Responsive Layouts & Breakpoints
    -------------------------------------------------------------------------- */
+@media (max-width: 980px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .mobile-nav-toggle {
+    display: inline-flex !important;
+  }
+}
+
 @media (max-width: 1024px) {
   .split-hero-grid {
     grid-template-columns: 1fr;

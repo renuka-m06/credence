@@ -3,6 +3,10 @@ import Navbar from './components/Navbar';
 import HomeScreen from './components/HomeScreen';
 import ReportScreen from './components/ReportScreen';
 import BenchmarkScreen from './components/BenchmarkScreen';
+import ReportsHistoryScreen from './components/ReportsHistoryScreen';
+import AuditScreen from './components/AuditScreen';
+import SettingsScreen from './components/SettingsScreen';
+import AboutScreen from './components/AboutScreen';
 import { apiUrl, getAuthHeaders } from './api';
 
 // Fallback demo report for offline testing without server
@@ -439,8 +443,37 @@ export default function App() {
             onNavigateHome={() => setCurrentScreen('home')}
           />
         )}
+        {currentScreen === 'reports' && (
+          <ReportsHistoryScreen
+            onSelectReport={(rep) => {
+              setReport(rep);
+              if (rep.id && typeof window !== 'undefined') {
+                sessionStorage.setItem('credence_active_report_id', rep.id);
+              }
+              setCurrentScreen('report');
+            }}
+            onNavigateUpload={() => setCurrentScreen('home')}
+          />
+        )}
         {currentScreen === 'benchmark' && (
           <BenchmarkScreen />
+        )}
+        {currentScreen === 'audit' && (
+          <AuditScreen onNavigateReport={() => setCurrentScreen('report')} />
+        )}
+        {currentScreen === 'settings' && (
+          <SettingsScreen
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
+            demoMode={demoMode}
+            onToggleDemoMode={handleToggleDemoMode}
+          />
+        )}
+        {currentScreen === 'about' && (
+          <AboutScreen
+            onNavigateUpload={() => setCurrentScreen('home')}
+            onNavigateBenchmark={() => setCurrentScreen('benchmark')}
+          />
         )}
       </main>
     </div>

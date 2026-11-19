@@ -379,3 +379,22 @@ def inspect_source_evidence(claim_id: str, report_id: Optional[str] = None) -> d
         "evidence_highlight": highlighted,
         "source_context": f"Section [{sec_name}]: {quote_text}",
     }
+
+
+@router.get("/reports")
+def list_reports_endpoint(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """Retrieve historical verification reports ordered by creation date descending."""
+    import credence.server as srv
+    from credence.report.storage import report_store
+
+    try:
+        reps = report_store.list_reports(limit=limit, offset=offset)
+        if not reps:
+            reps = list(srv.REPORTS_STORE.values())
+        return {"status": "ok", "reports": reps, "total": len(reps)}
+    except Exception:
+        fallback = list(srv.REPORTS_STORE.values())
+        return {"status": "ok", "reports": fallback[offset : offset + limit], "total": len(fallback)}

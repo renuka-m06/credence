@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function Navbar({
   currentScreen,
@@ -9,6 +9,22 @@ export default function Navbar({
   onToggleTheme,
 }) {
   const isLight = theme === 'light';
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const mainTabs = [
+    { id: 'home', label: 'Verify & Ingest' },
+    { id: 'report', label: 'Active Dossier' },
+    { id: 'reports', label: 'Archive' },
+    { id: 'benchmark', label: 'Benchmark' },
+    { id: 'audit', label: 'Audit Ledger' },
+    { id: 'settings', label: 'Settings' },
+    { id: 'about', label: 'Methodology' },
+  ];
+
+  const handleNavClick = (id) => {
+    setCurrentScreen(id);
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header style={{
@@ -21,14 +37,14 @@ export default function Navbar({
       padding: '12px 0',
       transition: 'background-color 0.25s ease, border-color 0.25s ease'
     }}>
-      <div className="container navbar-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="container navbar-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
         {/* Brand Identity with Scholarly Seal */}
         <div 
-          onClick={() => setCurrentScreen('home')}
+          onClick={() => handleNavClick('home')}
           style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && setCurrentScreen('home')}
+          onKeyDown={(e) => e.key === 'Enter' && handleNavClick('home')}
         >
           <div style={{
             width: '34px',
@@ -78,37 +94,34 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Primary Screen Navigation */}
-        <nav style={{
+        {/* Desktop Screen Navigation */}
+        <nav className="desktop-nav" style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '3px',
           background: 'var(--bg-surface-elevated)',
           padding: '4px',
           borderRadius: '9px',
           border: '1px solid var(--border-line)'
         }}>
-          {[
-            { id: 'home', label: 'Verify & Ingest' },
-            { id: 'report', label: 'Report Dossier' },
-            { id: 'benchmark', label: 'Evaluation Benchmark' },
-          ].map(tab => {
+          {mainTabs.map(tab => {
             const active = currentScreen === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setCurrentScreen(tab.id)}
+                onClick={() => handleNavClick(tab.id)}
                 style={{
                   background: active ? 'var(--bg-surface)' : 'transparent',
                   color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                   border: active ? '1px solid var(--border-line)' : '1px solid transparent',
                   boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                  padding: '7px 15px',
-                  borderRadius: '7px',
-                  fontSize: '12.5px',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
                   fontWeight: active ? '600' : '500',
                   cursor: 'pointer',
-                  transition: 'all 0.18s ease'
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {tab.label}
@@ -117,7 +130,7 @@ export default function Navbar({
           })}
         </nav>
 
-        {/* Controls: Theme Switch & Demo Mode Pill */}
+        {/* Controls: Theme Switch, Demo Mode Pill & Mobile Menu Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Light / Dark Mode Toggle */}
           <button
@@ -140,12 +153,10 @@ export default function Navbar({
             }}
           >
             {isLight ? (
-              /* Moon Icon for Light Mode (switch to dark) */
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
               </svg>
             ) : (
-              /* Sun Icon for Dark Mode (switch to light) */
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="4"/>
                 <path d="M12 2v2"/><path d="M12 20v2"/>
@@ -159,7 +170,7 @@ export default function Navbar({
           {/* Demo Mode Toggle Button */}
           <button
             onClick={() => onToggleDemoMode?.()}
-            title={demoMode ? "Demo Mode ON: Uses cached sample data without live external APIs" : "Live Mode ON: Calls real academic databases"}
+            title={demoMode ? "Demo Mode ON: Uses local sample data without live external APIs" : "Live Mode ON: Calls real academic databases"}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -183,9 +194,72 @@ export default function Navbar({
               background: demoMode ? 'var(--supported-color)' : 'var(--text-tertiary)',
               boxShadow: demoMode ? '0 0 8px var(--supported-color)' : 'none'
             }} />
-            <span>{demoMode ? 'Demo Mode (Offline)' : 'Live Gateway'}</span>
+            <span>{demoMode ? 'Demo (Offline)' : 'Live Gateway'}</span>
+          </button>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            className="mobile-nav-toggle"
+            onClick={() => setMobileMenuOpen(prev => !prev)}
+            aria-label="Toggle navigation menu"
+            style={{
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-line)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
           </button>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            background: 'var(--bg-surface)',
+            borderBottom: '1px solid var(--border-line)',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 60
+          }}>
+            {mainTabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => handleNavClick(tab.id)}
+                style={{
+                  textAlign: 'left',
+                  padding: '10px 14px',
+                  borderRadius: '7px',
+                  background: currentScreen === tab.id ? 'var(--bg-surface-elevated)' : 'transparent',
+                  color: currentScreen === tab.id ? 'var(--accent-orange)' : 'var(--text-primary)',
+                  border: 'none',
+                  fontSize: '13.5px',
+                  fontWeight: currentScreen === tab.id ? '700' : '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   );

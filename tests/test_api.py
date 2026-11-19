@@ -170,3 +170,13 @@ def test_offline_demo_mode_upload():
     assert data.get("offline_demo_mode") is True
     assert data.get("document_name") == "offline_manuscript.pdf"
     assert len(data.get("claims", [])) >= 1
+
+
+def test_list_reports_endpoint():
+    """Verify GET /reports returns historical verified reports list."""
+    resp = client.get("/reports?limit=10")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data.get("status") == "ok"
+    assert isinstance(data.get("reports"), list)
+    assert data.get("total", 0) >= 1
