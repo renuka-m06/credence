@@ -515,12 +515,14 @@ POSITIVE_EFFECT_TERMS = {
     "exhibits", "detected", "detects", "resulted in", "confirm", "confirmed",
     "confirms", "presence", "efficien", "efficiency", "yield", "yields",
     "outperform", "state-of-the-art", "fluctuat", "remained between",
+    "observed", "superconductivity", "critical temperature",
 }
 
 NEGATIVE_EFFECT_TERMS = {
     "failed to improve", "did not improve", "worsened", "deteriorated",
     "increased mortality", "ineffective", "no effect", "no reduction",
-    "no benefit", "no significant difference", "adverse", "inferior",
+    "no benefit", "no significant difference", "no significant effect", "adverse", "inferior",
+    "indistinguishable from zero", "statistically indistinguishable from zero",
 }
 
 

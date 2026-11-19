@@ -227,7 +227,7 @@ BASE_SCIENTIFIC_CLAIMS = [
         "doi": "10.1257/app.20130533",
         "source_title": "The Miracle of Microfinance? Evidence from a Randomized Evaluation",
         "source_text": (
-            "We report on a randomized evaluation of microcredit in Hyderabad, India. "
+            "We report on a randomized evaluation of microcredit across 104 urban slums in Hyderabad, India. "
             "While borrowing increased, we find no significant effect of access to microfinance "
             "on average business profits, average monthly consumption, or female empowerment measures."
         ),
@@ -372,6 +372,7 @@ def inject_negation(base: dict[str, Any]) -> dict[str, Any]:
         (r'\bachieved\b', 'failed to achieve'),
         (r'\bexhibited\b', 'failed to exhibit'),
         (r'\bdetected\b', 'failed to detect'),
+        (r'\bobserved\b', 'failed to observe'),
         (r'\bshowed no significant effect\b', 'demonstrated dramatic positive effects'),
     ]
 
@@ -500,15 +501,21 @@ def inject_fabricated_quote(base: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def generate_gold_dataset(
-    output_path: Optional[str] = "gold_set.jsonl",
+    output_path: Optional[str] = "tests/fixtures/gold_set.jsonl",
     seed: int = 42,
+    count_per_type: Optional[int] = 7,
 ) -> list[dict[str, Any]]:
-    """Generate a balanced gold standard benchmark dataset with known-good and corrupted claims."""
+    """Generate a balanced gold standard benchmark dataset with known-good and corrupted claims.
+
+    When count_per_type=7, produces 49 claim-citation pairs across all 7 types (40-50 pairs).
+    """
     random.seed(seed)
     dataset: list[dict[str, Any]] = []
 
+    claims_pool = BASE_SCIENTIFIC_CLAIMS if count_per_type is None else BASE_SCIENTIFIC_CLAIMS[:count_per_type]
+
     # 1. Clean Known-Good Claims (Expected: Supported)
-    for b in BASE_SCIENTIFIC_CLAIMS:
+    for b in claims_pool:
         # Full text supported
         dataset.append({
             "id": f"{b['id']}-clean",
@@ -523,28 +530,28 @@ def generate_gold_dataset(
         })
 
     # 2. Number-Swap Corruptions (Expected: Partially Supported or Contradictory)
-    for b in BASE_SCIENTIFIC_CLAIMS:
+    for b in claims_pool:
         dataset.append(inject_number_swap(b))
 
     # 3. Negation Corruptions (Expected: Contradictory)
-    for b in BASE_SCIENTIFIC_CLAIMS:
+    for b in claims_pool:
         dataset.append(inject_negation(b))
 
     # 4. Scope-Widen Corruptions (Expected: Unsupported)
-    for b in BASE_SCIENTIFIC_CLAIMS:
+    for b in claims_pool:
         dataset.append(inject_scope_widen(b))
 
     # 5. Unrelated-Citation Corruptions (Expected: Unsupported)
-    for idx, b in enumerate(BASE_SCIENTIFIC_CLAIMS):
+    for idx, b in enumerate(claims_pool):
         unrel = UNRELATED_PAPERS[idx % len(UNRELATED_PAPERS)]
         dataset.append(inject_unrelated_citation(b, unrel))
 
     # 6. Fake-DOI / Inaccessible Corruptions (Expected: Needs Review)
-    for idx, b in enumerate(BASE_SCIENTIFIC_CLAIMS):
+    for idx, b in enumerate(claims_pool):
         dataset.append(inject_fake_doi(b, idx + 1))
 
     # 7. Fabricated-Quote Corruptions (Expected: Needs Review via RULE_HALLUCINATED_QUOTE)
-    for b in BASE_SCIENTIFIC_CLAIMS[:10]:
+    for b in claims_pool:
         dataset.append(inject_fabricated_quote(b))
 
     if output_path:
@@ -558,5 +565,6 @@ def generate_gold_dataset(
 
 
 if __name__ == "__main__":
-    items = generate_gold_dataset("gold_set.jsonl")
+    items = generate_gold_dataset("tests/fixtures/gold_set.jsonl", count_per_type=7)
+    print(f"Generated {len(items)} gold benchmark samples in 'tests/fixtures/gold_set.jsonl'.")
     print(f"Generated {len(items)} gold benchmark samples in 'gold_set.jsonl'.")

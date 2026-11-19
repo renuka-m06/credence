@@ -119,8 +119,9 @@ def verify_claim(
         best_passage = passages[0].text if passages else ""
 
         # Perform checks
+        target_num_text = slot.expected_value if (slot.field_type in ("number", "quantity") and slot.expected_value and any(c.isdigit() for c in slot.expected_value)) else claim.text
         q_res = quote_check(best_passage, source_text) if best_passage else None
-        n_res = number_check(claim.text, best_passage) if best_passage else None
+        n_res = number_check(target_num_text, best_passage) if best_passage else None
         h_res = hedge_check(claim.text, best_passage) if best_passage else None
         p_res = polarity_check(claim.text, best_passage) if best_passage else None
 

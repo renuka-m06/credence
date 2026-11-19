@@ -291,10 +291,12 @@ def determine_verdict(
     # Fixed Rule Table Mapping
     if num_mismatches > 0:
         rules_triggered.append(RULE_CONTRADICTORY)
+        # Direct contradiction severely degrades empirical support confidence (e.g. 0.35)
+        contra_conf = max(0.0, round(conf - (num_mismatches * 0.35), 4))
         return Verdict(
             claim_id=claim_id,
             verdict=VerdictType.CONTRADICTORY,
-            confidence=conf,
+            confidence=contra_conf,
             explanation=(
                 f"Contradictory: {num_mismatches} slot(s) directly conflict with cited source "
                 f"(matched: {num_matches}, absent: {num_absent})."
@@ -336,10 +338,12 @@ def determine_verdict(
 
     if num_absent == len(norm_slots):
         rules_triggered.append(RULE_ALL_ABSENT)
+        # Total absence of asserted slots implies low empirical evidence support
+        unsupp_conf = max(0.0, round(min(0.15, conf * 0.20), 4))
         return Verdict(
             claim_id=claim_id,
             verdict=VerdictType.UNSUPPORTED,
-            confidence=conf,
+            confidence=unsupp_conf,
             explanation="Unsupported: cited source was retrieved but none of the asserted slots were found in text.",
             unverified_slots=num_absent,
             contradiction_detected=False,
