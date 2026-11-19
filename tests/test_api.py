@@ -10,6 +10,19 @@ from credence.server import app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def clean_demo_claim_reviews():
+    """Ensure demo claim-1 has a clean slate for baseline demo tests."""
+    from credence.report.ledger import get_connection
+    with get_connection() as conn:
+        conn.execute("DELETE FROM review_ledger WHERE claim_id = 'claim-1';")
+        conn.commit()
+    yield
+    with get_connection() as conn:
+        conn.execute("DELETE FROM review_ledger WHERE claim_id = 'claim-1';")
+        conn.commit()
+
+
 def test_health():
     resp = client.get("/health")
     assert resp.status_code == 200

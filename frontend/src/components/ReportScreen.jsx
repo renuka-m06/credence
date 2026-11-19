@@ -8,8 +8,13 @@ export default function ReportScreen({ report, onReviewClaim }) {
   const [filter, setFilter] = useState('Needs review');
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [overrideChoice, setOverrideChoice] = useState('supported');
+  const [overrideComment, setOverrideComment] = useState('');
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [reviewNote, setReviewNote] = useState('');
+  const [auditTab, setAuditTab] = useState('claim'); // 'claim' or 'global'
+  const [globalAudit, setGlobalAudit] = useState([]);
+  const [loadingGlobalAudit, setLoadingGlobalAudit] = useState(false);
 
   if (!report || !report.claims || report.claims.length === 0) {
     return (
@@ -36,29 +41,53 @@ export default function ReportScreen({ report, onReviewClaim }) {
 
   const selectedClaim = claims.find(c => c.id === selectedClaimId) || filteredClaims[0] || claims[0];
 
-  const handleAction = (actionType) => {
+  const fetchGlobalAudit = () => {
+    setLoadingGlobalAudit(true);
+    fetch('/audit?limit=30')
+      .then(res => res.json())
+      .then(data => {
+        setGlobalAudit(data?.audit_log || data?.reviews || []);
+        setLoadingGlobalAudit(false);
+      })
+      .catch(() => {
+        setLoadingGlobalAudit(false);
+      });
+  };
+
+  const handleAction = (actionType, explicitComment = '') => {
     if (actionType === 'accept') {
+      const comment = explicitComment || 'Reviewer accepted verdict based on verified proof.';
       onReviewClaim?.(report.id, selectedClaim.id, {
         action: 'accept',
-        comment: 'Reviewer accepted verdict based on verified proof.'
+        comment,
+        reviewer_id: 'reviewer-1'
       });
       setReviewNote('Action logged: Accepted verdict.');
+      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
     } else if (actionType === 'comment') {
-      if (!commentText.trim()) return;
+      const comment = explicitComment || commentText;
+      if (!comment.trim()) return;
       onReviewClaim?.(report.id, selectedClaim.id, {
         action: 'comment',
-        comment: commentText
+        comment: comment.trim(),
+        reviewer_id: 'reviewer-1'
       });
-      setReviewNote(`Comment added: "${commentText}"`);
+      setReviewNote(`Comment added: "${comment.trim()}"`);
       setCommentText('');
+      setShowCommentModal(false);
+      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
     } else if (actionType === 'override') {
+      const comment = explicitComment || overrideComment.trim() || `Overridden to ${overrideChoice}`;
       onReviewClaim?.(report.id, selectedClaim.id, {
         action: 'override',
         override_verdict: overrideChoice,
-        comment: `Overridden to ${overrideChoice}`
+        comment,
+        reviewer_id: 'reviewer-1'
       });
       setReviewNote(`Action logged: Overridden to ${overrideChoice}.`);
       setShowOverrideModal(false);
+      setOverrideComment('');
+      if (auditTab === 'global') setTimeout(fetchGlobalAudit, 400);
     }
   };
 
@@ -482,7 +511,10 @@ export default function ReportScreen({ report, onReviewClaim }) {
                 </button>
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setShowOverrideModal(true)}
+                  onClick={() => {
+                    setShowOverrideModal(prev => !prev);
+                    setShowCommentModal(false);
+                  }}
                   style={{ color: 'var(--partial-color)', borderColor: 'rgba(227, 169, 58, 0.3)' }}
                 >
                   ✎ Override
@@ -490,12 +522,10 @@ export default function ReportScreen({ report, onReviewClaim }) {
                 <button
                   className="btn btn-secondary"
                   onClick={() => {
-                    const c = prompt("Enter reviewer academic comment:");
-                    if (c) {
-                      setCommentText(c);
-                      handleAction('comment');
-                    }
+                    setShowCommentModal(prev => !prev);
+                    setShowOverrideModal(false);
                   }}
+                  style={{ color: 'var(--needs-review-color)', borderColor: 'rgba(90, 169, 240, 0.3)' }}
                 >
                   💬 Comment
                 </button>
@@ -508,7 +538,7 @@ export default function ReportScreen({ report, onReviewClaim }) {
               </div>
             )}
 
-            {/* Override Modal */}
+            {/* Override Form Panel */}
             {showOverrideModal && (
               <div style={{
                 background: 'var(--panel2)',
@@ -516,36 +546,257 @@ export default function ReportScreen({ report, onReviewClaim }) {
                 borderRadius: '10px',
                 padding: '16px',
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: 'column',
                 gap: '12px'
               }}>
-                <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>Select Override Verdict:</span>
-                <select
-                  value={overrideChoice}
-                  onChange={(e) => setOverrideChoice(e.target.value)}
-                  style={{
-                    background: 'var(--bg)',
-                    color: '#fff',
-                    border: '1px solid var(--line)',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    fontSize: '12px'
-                  }}
-                >
-                  <option value="supported">Supported</option>
-                  <option value="partially supported">Partially Supported</option>
-                  <option value="contradictory">Contradictory</option>
-                  <option value="unsupported">Unsupported</option>
-                  <option value="needs review">Needs Review</option>
-                </select>
-                <button className="btn btn-primary" onClick={() => handleAction('override')} style={{ padding: '6px 12px', fontSize: '12px' }}>
-                  Confirm Override
-                </button>
-                <button className="btn btn-secondary" onClick={() => setShowOverrideModal(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
-                  Cancel
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+                    Override Claim Verdict ({selectedClaim.id})
+                  </span>
+                  <button
+                    onClick={() => setShowOverrideModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--faint)', cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>New Verdict:</span>
+                  <select
+                    value={overrideChoice}
+                    onChange={(e) => setOverrideChoice(e.target.value)}
+                    style={{
+                      background: 'var(--bg)',
+                      color: '#fff',
+                      border: '1px solid var(--line)',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      fontSize: '12px'
+                    }}
+                  >
+                    <option value="supported">Supported</option>
+                    <option value="partially supported">Partially Supported</option>
+                    <option value="contradictory">Contradictory</option>
+                    <option value="unsupported">Unsupported</option>
+                    <option value="needs review">Needs Review</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Reviewer rationale / evidence justification (optional)..."
+                    value={overrideComment}
+                    onChange={(e) => setOverrideComment(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--ink)'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={() => setShowOverrideModal(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={() => handleAction('override')} style={{ padding: '6px 14px', fontSize: '12px' }}>
+                    Confirm Override
+                  </button>
+                </div>
               </div>
             )}
+
+            {/* Comment Form Panel */}
+            {showCommentModal && (
+              <div style={{
+                background: 'var(--panel2)',
+                border: '1px solid var(--line)',
+                borderRadius: '10px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+                    Add Reviewer Comment ({selectedClaim.id})
+                  </span>
+                  <button
+                    onClick={() => setShowCommentModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--faint)', cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <textarea
+                  placeholder="Enter academic review comment or methodology note..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    color: 'var(--ink)',
+                    resize: 'vertical'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={() => setShowCommentModal(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={() => handleAction('comment')} style={{ padding: '6px 14px', fontSize: '12px' }}>
+                    Post Comment
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* HUMAN REVIEW AUDIT LEDGER SECTION */}
+            <div className="audit-ledger-box">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    HUMAN REVIEW AUDIT LEDGER
+                  </span>
+                  <span style={{
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: 'var(--ink)',
+                    fontWeight: '600'
+                  }}>
+                    {auditTab === 'claim' ? (selectedClaim.reviews?.length || 0) : globalAudit.length}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => setAuditTab('claim')}
+                    style={{
+                      background: auditTab === 'claim' ? 'rgba(240, 106, 44, 0.15)' : 'transparent',
+                      color: auditTab === 'claim' ? 'var(--orange2)' : 'var(--muted)',
+                      border: auditTab === 'claim' ? '1px solid rgba(240, 106, 44, 0.3)' : '1px solid var(--line)',
+                      borderRadius: '4px',
+                      padding: '3px 9px',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Current Claim
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuditTab('global');
+                      fetchGlobalAudit();
+                    }}
+                    style={{
+                      background: auditTab === 'global' ? 'rgba(240, 106, 44, 0.15)' : 'transparent',
+                      color: auditTab === 'global' ? 'var(--orange2)' : 'var(--muted)',
+                      border: auditTab === 'global' ? '1px solid rgba(240, 106, 44, 0.3)' : '1px solid var(--line)',
+                      borderRadius: '4px',
+                      padding: '3px 9px',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    All Document Actions
+                  </button>
+                </div>
+              </div>
+
+              {auditTab === 'claim' ? (
+                <div>
+                  {(!selectedClaim.reviews || selectedClaim.reviews.length === 0) ? (
+                    <div style={{ fontSize: '12px', color: 'var(--faint)', fontStyle: 'italic', padding: '10px 0' }}>
+                      Default stance: Human review. No human actions recorded in ledger for this claim yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {selectedClaim.reviews.map((rev) => (
+                        <div key={rev.review_id} className="audit-entry-item">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {rev.action === 'accept' && (
+                                <span className="audit-badge-accept">✓ ACCEPTED</span>
+                              )}
+                              {rev.action === 'override' && (
+                                <span className="audit-badge-override">✎ OVERRIDDEN → {rev.override_verdict}</span>
+                              )}
+                              {rev.action === 'comment' && (
+                                <span className="audit-badge-comment">💬 COMMENT</span>
+                              )}
+                              <span style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'monospace' }}>
+                                by {rev.reviewer_id}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                              {rev.created_at ? new Date(rev.created_at).toLocaleString() : ''}
+                            </span>
+                          </div>
+                          {rev.comment && (
+                            <div style={{ fontSize: '12px', color: 'var(--ink)', paddingLeft: '6px', borderLeft: '2px solid var(--line)' }}>
+                              "{rev.comment}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {loadingGlobalAudit ? (
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', padding: '10px 0' }}>Loading audit trail...</div>
+                  ) : globalAudit.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--faint)', fontStyle: 'italic', padding: '10px 0' }}>
+                      No audit actions recorded across document claims yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {globalAudit.map((rev) => (
+                        <div key={rev.review_id} className="audit-entry-item">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {rev.action === 'accept' && (
+                                <span className="audit-badge-accept">✓ ACCEPTED</span>
+                              )}
+                              {rev.action === 'override' && (
+                                <span className="audit-badge-override">✎ OVERRIDDEN → {rev.override_verdict}</span>
+                              )}
+                              {rev.action === 'comment' && (
+                                <span className="audit-badge-comment">💬 COMMENT</span>
+                              )}
+                              <span style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'monospace' }}>
+                                Claim: {rev.claim_id}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                                ({rev.reviewer_id})
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                              {rev.created_at ? new Date(rev.created_at).toLocaleString() : ''}
+                            </span>
+                          </div>
+                          {rev.comment && (
+                            <div style={{ fontSize: '12px', color: 'var(--ink)', paddingLeft: '6px', borderLeft: '2px solid var(--line)' }}>
+                              "{rev.comment}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

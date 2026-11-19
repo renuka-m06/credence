@@ -197,11 +197,28 @@ export default function App() {
   };
 
   const handleReviewClaim = (reportId, claimId, actionData) => {
-    fetch(`/report/${reportId}/review?claim_id=${claimId}`, {
+    return fetch(`/claims/${claimId}/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(actionData),
-    }).catch(() => {});
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Re-fetch report from backend with SQLite review ledger applied
+        const reportUrl = reportId && reportId !== 'demo-report-1' ? `/report/${reportId}` : '/demo/report';
+        fetch(reportUrl)
+          .then(r => r.json())
+          .then(updated => {
+            if (updated && updated.claims) {
+              setReport(updated);
+            }
+          })
+          .catch(() => {});
+        return data;
+      })
+      .catch(err => {
+        console.error('Failed to submit review to ledger:', err);
+      });
   };
 
   return (
