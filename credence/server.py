@@ -137,8 +137,14 @@ def get_demo_report():
 
 
 @app.post("/verify")
-async def verify_document(file: UploadFile = File(...)):
+async def verify_document(file: UploadFile = File(...), force_error: bool = False):
     """Upload PDF or DOCX manuscript and run complete verification pipeline."""
+    if force_error:
+        raise HTTPException(
+            status_code=500,
+            detail="Verification pipeline forced error: Academic database retrieval gateway timed out."
+        )
+
     suffix = Path(file.filename).suffix.lower()
     if suffix not in (".pdf", ".docx", ".doc"):
         raise HTTPException(status_code=400, detail="Supported file formats: .pdf, .docx")
@@ -168,6 +174,12 @@ async def verify_document(file: UploadFile = File(...)):
             # Fallback to full body claim extraction
             claims = extract_claims(parsed_doc.text, section_name="Full Manuscript")
 
+        # Ensure distinct claim and slot IDs across sections
+        for idx, cl in enumerate(claims, 1):
+            cl.id = f"claim-{idx}"
+            for sidx, slot in enumerate(cl.slots, 1):
+                slot.id = f"claim-{idx}-slot-{sidx}"
+
         # Verify claims against citations
         verified_claims: list[Claim] = []
         for cl in claims:
@@ -182,9 +194,9 @@ async def verify_document(file: UploadFile = File(...)):
                 source_text = f"{ref_entry.title}. {ref_entry.journal or ''} {ref_entry.year or ''}."
                 if ref_entry.doi:
                     source_text += f" https://doi.org/{ref_entry.doi}"
-
-            # If no mapped reference, use manuscript body context as fallback
-            if not source_text:
+            else:
+                if ref_key:
+                    access_tier = AccessTier.INACCESSIBLE
                 source_text = parsed_doc.text
 
             v_cl = verify_claim(cl, source_text=source_text, access_tier=access_tier, citation_key=ref_key)
@@ -205,6 +217,7 @@ async def verify_document(file: UploadFile = File(...)):
         rep_dict = report.to_dict()
         rep_id = str(uuid.uuid4())
         rep_dict["id"] = rep_id
+        rep_dict = apply_ledger_to_report(rep_dict)
         REPORTS_STORE[rep_id] = rep_dict
         return rep_dict
 

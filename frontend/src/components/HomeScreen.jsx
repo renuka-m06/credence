@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 
-export default function HomeScreen({ onSelectDemo, onUploadFile, loading }) {
+export default function HomeScreen({
+  onSelectDemo,
+  onUploadFile,
+  loading,
+  loadingProgress,
+  errorMessage,
+  onClearError,
+  onForceError
+}) {
   const [dragOver, setDragOver] = useState(false);
 
   const handleDrop = (e) => {
@@ -76,67 +84,191 @@ export default function HomeScreen({ onSelectDemo, onUploadFile, loading }) {
             </svg>
           </div>
 
+          {/* Friendly Error State Banner (Never Crashes) */}
+          {errorMessage && (
+            <div style={{
+              background: 'rgba(239, 107, 107, 0.08)',
+              border: '1px solid rgba(239, 107, 107, 0.35)',
+              borderRadius: '12px',
+              padding: '18px 24px',
+              maxWidth: '620px',
+              margin: '0 auto 28px',
+              textAlign: 'left',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start',
+              boxShadow: '0 4px 20px rgba(239, 107, 107, 0.12)'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'rgba(239, 107, 107, 0.15)',
+                color: 'var(--unsupported-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '700', fontSize: '14px', color: '#fff', marginBottom: '4px' }}>
+                  Document Verification Notice
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--ink)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                  {errorMessage}
+                </p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={onClearError}
+                    style={{ fontSize: '11px', padding: '5px 12px' }}
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={onSelectDemo}
+                    style={{ fontSize: '11px', padding: '5px 14px' }}
+                  >
+                    Run Demo Paper (sample_paper.pdf)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Upload / Demo Action Box */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            style={{
-              background: dragOver ? 'rgba(240, 106, 44, 0.08)' : 'var(--panel)',
-              border: `2px dashed ${dragOver ? 'var(--orange)' : 'var(--line)'}`,
+          {loading ? (
+            <div style={{
+              background: 'var(--panel)',
+              border: '2px solid rgba(240, 106, 44, 0.4)',
               borderRadius: '16px',
-              padding: '40px 24px',
+              padding: '44px 24px',
               maxWidth: '600px',
               margin: '0 auto',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
-            }}
-          >
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              color: 'var(--orange)'
+              boxShadow: '0 8px 32px rgba(240, 106, 44, 0.18)',
+              textAlign: 'center'
             }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
+              <div
+                className="spinner-glow"
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  border: '3px solid rgba(240, 106, 44, 0.2)',
+                  borderTop: '3px solid var(--orange2)',
+                  borderRadius: '50%',
+                  margin: '0 auto 20px',
+                }}
+              />
+              <h3 style={{ fontSize: '18px', color: '#fff', marginBottom: '8px' }}>
+                Analyzing Academic Manuscript
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--orange2)', fontWeight: '600', marginBottom: '18px' }}>
+                {loadingProgress || 'Extracting empirical claims and atomizing into slots...'}
+              </p>
+              <div style={{
+                width: '85%',
+                height: '6px',
+                background: 'rgba(255,255,255,0.06)',
+                borderRadius: '3px',
+                margin: '0 auto 16px',
+                overflow: 'hidden'
+              }}>
+                <div className="progress-bar-animated" style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, var(--orange), var(--orange2))',
+                }} />
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                Deterministic verification active · Golden rule: code confirms quotes before granting proof
+              </span>
             </div>
+          ) : (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              style={{
+                background: dragOver ? 'rgba(240, 106, 44, 0.08)' : 'var(--panel)',
+                border: `2px dashed ${dragOver ? 'var(--orange)' : 'var(--line)'}`,
+                borderRadius: '16px',
+                padding: '40px 24px',
+                maxWidth: '600px',
+                margin: '0 auto',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+              }}
+            >
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: 'var(--orange)'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
 
-            <p style={{ fontWeight: '600', fontSize: '15px', color: '#fff', marginBottom: '6px' }}>
-              Drop your PDF or DOCX manuscript here
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--faint)', marginBottom: '20px' }}>
-              Supports academic research papers, clinical reports, and grant proposals
-            </p>
+              <p style={{ fontWeight: '600', fontSize: '15px', color: '#fff', marginBottom: '6px' }}>
+                Drop your PDF or DOCX manuscript here
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--faint)', marginBottom: '20px' }}>
+                Supports academic research papers, clinical reports, and grant proposals
+              </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-              <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.doc"
-                  style={{ display: 'none' }}
-                  onChange={(e) => e.target.files && onUploadFile(e.target.files[0])}
-                />
-                Browse File
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.doc"
+                    style={{ display: 'none' }}
+                    onChange={(e) => e.target.files && onUploadFile(e.target.files[0])}
+                  />
+                  Browse File
+                </label>
 
-              <button
-                className="btn btn-primary"
-                onClick={onSelectDemo}
-                disabled={loading}
-              >
-                {loading ? 'Analyzing...' : 'Run Demo Paper (sample_paper.pdf)'}
-              </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={onSelectDemo}
+                  disabled={loading}
+                >
+                  Run Demo Paper (sample_paper.pdf)
+                </button>
+              </div>
+
+              <div style={{ marginTop: '16px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
+                <button
+                  onClick={onForceError}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--faint)',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                  title="Simulate a gateway error to test graceful error handling"
+                >
+                  ⚡ Simulate Verification API Error
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* 3 FEATURE CARDS */}

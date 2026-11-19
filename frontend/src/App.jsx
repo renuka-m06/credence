@@ -142,6 +142,8 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState(getInitialScreen);
   const [report, setReport] = useState(FALLBACK_DEMO_REPORT);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState('');
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     // Fetch live demo report from backend if available
@@ -159,22 +161,40 @@ export default function App() {
 
   const handleSelectDemo = () => {
     setLoading(true);
+    setErrorMessage(null);
+    setLoadingProgress('Loading worked sample paper (sample_paper.pdf)...');
     fetch('/demo/report')
       .then(res => res.json())
       .then(data => {
         setReport(data || FALLBACK_DEMO_REPORT);
         setCurrentScreen('report');
         setLoading(false);
+        setLoadingProgress('');
       })
       .catch(() => {
         setReport(FALLBACK_DEMO_REPORT);
         setCurrentScreen('report');
         setLoading(false);
+        setLoadingProgress('');
       });
   };
 
   const handleUploadFile = (file) => {
+    if (!file) return;
     setLoading(true);
+    setErrorMessage(null);
+    setLoadingProgress('Parsing manuscript sections & citations...');
+
+    const timer1 = setTimeout(() => {
+      setLoadingProgress('Mapping citation markers to bibliography...');
+    }, 450);
+    const timer2 = setTimeout(() => {
+      setLoadingProgress('Extracting factual claims and atomizing into slots...');
+    }, 950);
+    const timer3 = setTimeout(() => {
+      setLoadingProgress('Verifying verbatim source quotes & computing confidence...');
+    }, 1500);
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -182,18 +202,71 @@ export default function App() {
       method: 'POST',
       body: formData,
     })
-      .then(res => res.json())
+      .then(async (res) => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        if (!res.ok) {
+          let errDetail = `Server returned status ${res.status}`;
+          try {
+            const errData = await res.json();
+            errDetail = errData.detail || errData.message || errDetail;
+          } catch {
+            // Not JSON
+          }
+          throw new Error(errDetail);
+        }
+        return res.json();
+      })
       .then(data => {
         setReport(data);
         setCurrentScreen('report');
         setLoading(false);
+        setLoadingProgress('');
       })
-      .catch(() => {
-        // Fallback demo on error
-        setReport(FALLBACK_DEMO_REPORT);
-        setCurrentScreen('report');
+      .catch(err => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
         setLoading(false);
+        setLoadingProgress('');
+        setErrorMessage(
+          `Verification Notice: ${err.message}. Please check that the file is an academic .pdf or .docx, or run the demo sample paper.`
+        );
       });
+  };
+
+  const handleForceError = () => {
+    setLoading(true);
+    setErrorMessage(null);
+    setLoadingProgress('Sending request to verify pipeline...');
+
+    // Post to /verify with force_error query to test error state
+    fetch('/verify?force_error=true', {
+      method: 'POST',
+      body: new FormData(),
+    })
+      .then(async (res) => {
+        let errDetail = 'Simulated pipeline gateway error';
+        try {
+          const errData = await res.json();
+          errDetail = errData.detail || errData.message || errDetail;
+        } catch {
+          // Non-JSON
+        }
+        throw new Error(errDetail);
+      })
+      .catch(err => {
+        setLoading(false);
+        setLoadingProgress('');
+        setErrorMessage(
+          `Verification API Error: ${err.message}. Triage pipeline caught the failure cleanly without crashing.`
+        );
+      });
+  };
+
+  const handleClearError = () => {
+    setErrorMessage(null);
   };
 
   const handleReviewClaim = (reportId, claimId, actionData) => {
@@ -231,12 +304,17 @@ export default function App() {
             onSelectDemo={handleSelectDemo}
             onUploadFile={handleUploadFile}
             loading={loading}
+            loadingProgress={loadingProgress}
+            errorMessage={errorMessage}
+            onClearError={handleClearError}
+            onForceError={handleForceError}
           />
         )}
         {currentScreen === 'report' && (
           <ReportScreen
             report={report}
             onReviewClaim={handleReviewClaim}
+            onNavigateHome={() => setCurrentScreen('home')}
           />
         )}
         {currentScreen === 'benchmark' && (

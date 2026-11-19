@@ -303,3 +303,31 @@ h1, h2, h3, .serif-heading {
   font-weight: 700;
   text-transform: uppercase;
 }
+
+/* Animations for Upload & Loading states */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-progress {
+  0% { opacity: 0.7; transform: scaleX(0.98); }
+  50% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0.7; transform: scaleX(0.98); }
+}
+
+.spinner-glow {
+  animation: spin 0.9s linear infinite;
+}
+
+.progress-bar-animated {
+  animation: pulse-progress 1.5s ease-in-out infinite;
+  transform-origin: left;
+}
+
+.inaccessible-banner {
+  background: rgba(90, 169, 240, 0.08);
+  border: 1px solid rgba(90, 169, 240, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+}

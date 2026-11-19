@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function ReportScreen({ report, onReviewClaim }) {
+export default function ReportScreen({ report, onReviewClaim, onNavigateHome }) {
   const [selectedClaimId, setSelectedClaimId] = useState(
     report?.claims?.[0]?.id || ''
   );
@@ -19,27 +19,66 @@ export default function ReportScreen({ report, onReviewClaim }) {
   if (!report || !report.claims || report.claims.length === 0) {
     return (
       <div className="container" style={{ padding: '80px 0', textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '12px' }}>No Report Loaded</h2>
-        <p style={{ color: 'var(--muted)' }}>Run verification on a document or sample paper to view evidence triage.</p>
+        <div style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '14px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          color: 'var(--muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 18px',
+          fontSize: '24px'
+        }}>
+          📄
+        </div>
+        <h2 style={{ marginBottom: '12px', color: '#fff', fontFamily: 'var(--font-serif)', fontSize: '28px' }}>
+          No Empirical Claims Detected
+        </h2>
+        <p style={{ color: 'var(--muted)', maxWidth: '520px', margin: '0 auto 24px', fontSize: '14px', lineHeight: 1.6 }}>
+          The manuscript was parsed successfully, but no empirical quantitative assertions paired with in-text citation keys were found.
+        </p>
+        <button className="btn btn-primary" onClick={onNavigateHome}>
+          Upload Another Manuscript
+        </button>
       </div>
     );
   }
 
   const claims = report.claims;
 
+  // Count claims for each filter tab dynamically
+  const countForFilter = (tab) => {
+    if (tab === 'All') return claims.length;
+    return claims.filter(c => {
+      const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+      const isReview = vStr.includes('review') || c.verdict?.needs_review;
+      const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+      if (tab === 'Needs review') return isReview || isInaccessible;
+      if (tab === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
+      if (tab === 'Partial') return vStr.includes('partially') || vStr.includes('partial');
+      if (tab === 'Contradictory') return vStr.includes('contradictory');
+      if (tab === 'Unsupported') return vStr.includes('unsupported');
+      return true;
+    }).length;
+  };
+
   // Filter claims based on selected filter
   const filteredClaims = claims.filter(c => {
     if (filter === 'All') return true;
     const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
-    if (filter === 'Needs review') return vStr.includes('review') || c.verdict?.needs_review;
-    if (filter === 'Supported') return vStr.includes('supported') && !vStr.includes('partially');
+    const isReview = vStr.includes('review') || c.verdict?.needs_review;
+    const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+    if (filter === 'Needs review') return isReview || isInaccessible;
+    if (filter === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
     if (filter === 'Partial') return vStr.includes('partially') || vStr.includes('partial');
     if (filter === 'Contradictory') return vStr.includes('contradictory');
     if (filter === 'Unsupported') return vStr.includes('unsupported');
     return true;
   });
 
-  const selectedClaim = claims.find(c => c.id === selectedClaimId) || filteredClaims[0] || claims[0];
+  const selectedClaim = filteredClaims.find(c => c.id === selectedClaimId) || filteredClaims[0] || null;
 
   const fetchGlobalAudit = () => {
     setLoadingGlobalAudit(true);
@@ -186,16 +225,34 @@ export default function ReportScreen({ report, onReviewClaim }) {
         </div>
 
         {/* FILTER BAR (Default: Needs review) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', marginRight: '6px' }}>
             FILTER CLAIMS:
           </span>
           {['Needs review', 'All', 'Supported', 'Partial', 'Contradictory', 'Unsupported'].map(tab => {
             const active = filter === tab;
+            const count = countForFilter(tab);
             return (
               <button
                 key={tab}
-                onClick={() => setFilter(tab)}
+                onClick={() => {
+                  setFilter(tab);
+                  const matching = claims.filter(c => {
+                    if (tab === 'All') return true;
+                    const vStr = (c.verdict?.display_verdict || c.verdict?.verdict || '').toLowerCase();
+                    const isReview = vStr.includes('review') || c.verdict?.needs_review;
+                    const isInaccessible = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+                    if (tab === 'Needs review') return isReview || isInaccessible;
+                    if (tab === 'Supported') return vStr.includes('supported') && !vStr.includes('partially') && !vStr.includes('partial');
+                    if (tab === 'Partial') return vStr.includes('partially') || vStr.includes('partial');
+                    if (tab === 'Contradictory') return vStr.includes('contradictory');
+                    if (tab === 'Unsupported') return vStr.includes('unsupported');
+                    return true;
+                  });
+                  if (matching.length > 0 && !matching.some(m => m.id === selectedClaimId)) {
+                    setSelectedClaimId(matching[0].id);
+                  }
+                }}
                 style={{
                   background: active ? 'rgba(240, 106, 44, 0.15)' : 'var(--panel)',
                   color: active ? 'var(--orange2)' : 'var(--muted)',
@@ -205,23 +262,23 @@ export default function ReportScreen({ report, onReviewClaim }) {
                   fontSize: '12px',
                   fontWeight: active ? '700' : '500',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {tab}
-                {tab === 'Needs review' && (
-                  <span style={{
-                    marginLeft: '6px',
-                    fontSize: '10px',
-                    background: 'var(--needs-review-color)',
-                    color: '#000',
-                    fontWeight: '800',
-                    padding: '1px 5px',
-                    borderRadius: '10px'
-                  }}>
-                    {claims.filter(c => (c.verdict?.display_verdict || '').toLowerCase().includes('review')).length}
-                  </span>
-                )}
+                <span>{tab}</span>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '1px 6px',
+                  borderRadius: '8px',
+                  background: active ? 'var(--orange)' : 'rgba(255, 255, 255, 0.08)',
+                  color: active ? '#000' : 'var(--muted)'
+                }}>
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -231,187 +288,304 @@ export default function ReportScreen({ report, onReviewClaim }) {
         <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* LEFT: CLAIM LIST */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filteredClaims.map(c => {
-              const active = c.id === selectedClaim.id;
-              const verdictDisplay = c.verdict?.display_verdict || c.verdict?.verdict || 'Needs review';
-              const vClass = getVerdictClass(verdictDisplay);
-
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => setSelectedClaimId(c.id)}
-                  style={{
-                    background: active ? 'var(--panel2)' : 'var(--panel)',
-                    border: active ? '1px solid var(--orange)' : '1px solid var(--line)',
-                    borderRadius: '10px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: active ? '0 0 20px rgba(240, 106, 44, 0.12)' : 'none'
-                  }}
+            {filteredClaims.length === 0 ? (
+              <div style={{
+                background: 'var(--panel)',
+                border: '1px solid var(--line)',
+                borderRadius: '10px',
+                padding: '24px 16px',
+                textAlign: 'center',
+                color: 'var(--muted)',
+                fontSize: '13px'
+              }}>
+                <p style={{ marginBottom: '8px', color: '#fff', fontWeight: '600' }}>No Claims Under "{filter}"</p>
+                <p style={{ fontSize: '11px', color: 'var(--faint)', marginBottom: '14px', lineHeight: 1.5 }}>
+                  No assertions in this manuscript match this verdict category.
+                </p>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setFilter('Needs review')}
+                  style={{ fontSize: '11px', padding: '5px 12px' }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--muted)' }}>
-                      {c.id.toUpperCase()} · {c.source_location || 'Results'}
-                    </span>
-                    <span className={`verdict-badge ${vClass}`} style={{ fontSize: '10px', padding: '2px 7px' }}>
-                      {verdictDisplay}
-                    </span>
+                  Show "Needs review" ({countForFilter('Needs review')})
+                </button>
+              </div>
+            ) : (
+              filteredClaims.map(c => {
+                const active = selectedClaim && c.id === selectedClaim.id;
+                const verdictDisplay = c.verdict?.display_verdict || c.verdict?.verdict || 'Needs review';
+                const vClass = getVerdictClass(verdictDisplay);
+                const isInacc = c.verdict?.access_tier === 'inaccessible' || c.verdict?.access_tier === 'not_found' || c.access_tier === 'inaccessible';
+
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedClaimId(c.id)}
+                    style={{
+                      background: active ? 'var(--panel2)' : 'var(--panel)',
+                      border: active ? '1px solid var(--orange)' : '1px solid var(--line)',
+                      borderRadius: '10px',
+                      padding: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: active ? '0 0 20px rgba(240, 106, 44, 0.12)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--muted)' }}>
+                        {c.id.toUpperCase()} · {c.source_location || 'Results'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {isInacc && (
+                          <span style={{ fontSize: '9px', background: 'rgba(90, 169, 240, 0.15)', color: 'var(--needs-review-color)', padding: '1px 5px', borderRadius: '3px', fontWeight: '700' }}>
+                            INACCESSIBLE
+                          </span>
+                        )}
+                        <span className={`verdict-badge ${vClass}`} style={{ fontSize: '10px', padding: '2px 7px' }}>
+                          {verdictDisplay}
+                        </span>
+                      </div>
+                    </div>
+                    <p style={{
+                      fontSize: '13px',
+                      color: active ? '#fff' : 'var(--ink)',
+                      lineHeight: 1.5,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {c.text}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--faint)' }}>
+                      <span>Citations: [{c.citation_keys?.join(', ') || '1'}]</span>
+                      <span>Confidence: {((c.verdict?.confidence || 0) * 100).toFixed(0)}%</span>
+                    </div>
                   </div>
-                  <p style={{
-                    fontSize: '13px',
-                    color: active ? '#fff' : 'var(--ink)',
-                    lineHeight: 1.5,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {c.text}
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--faint)' }}>
-                    <span>Citations: [{c.citation_keys?.join(', ') || '1'}]</span>
-                    <span>Confidence: {((c.verdict?.confidence || 0) * 100).toFixed(0)}%</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* RIGHT: DETAIL PANEL */}
-          <div style={{
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            borderRadius: '16px',
-            padding: '32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '28px'
-          }}>
-            {/* Header: Claim Statement */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--muted)', textTransform: 'uppercase' }}>
-                  ASSERTED SCIENTIFIC CLAIM · {selectedClaim.source_location}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--orange2)', fontWeight: '600' }}>
-                  Citation: [{selectedClaim.citation_keys?.join(', ')}]
-                </span>
-              </div>
-              <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#fff', lineHeight: 1.4 }}>
-                "{selectedClaim.text}"
-              </h2>
-            </div>
-
-            {/* Verdict + Confidence Strip */}
+          {!selectedClaim ? (
             <div style={{
-              background: 'var(--panel2)',
+              background: 'var(--panel)',
               border: '1px solid var(--line)',
-              borderRadius: '12px',
-              padding: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '20px'
+              borderRadius: '16px',
+              padding: '60px 32px',
+              textAlign: 'center'
             }}>
+              <h3 style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+                No Claims Under Filter "{filter}"
+              </h3>
+              <p style={{ color: 'var(--muted)', fontSize: '13px', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+                There are currently no empirical claims in this report with the "{filter}" verdict.
+                Select another filter tab or return to the triage view.
+              </p>
+              <button className="btn btn-primary" onClick={() => setFilter('Needs review')}>
+                Show "Needs review" Claims ({countForFilter('Needs review')})
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              background: 'var(--panel)',
+              border: '1px solid var(--line)',
+              borderRadius: '16px',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '28px'
+            }}>
+              {/* Header: Claim Statement */}
               <div>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
-                  COMPUTED EVIDENCE VERDICT
-                </span>
-                <span className={`verdict-badge ${getVerdictClass(selectedClaim.verdict?.display_verdict)}`} style={{ fontSize: '14px', padding: '6px 14px' }}>
-                  {selectedClaim.verdict?.display_verdict || 'Needs review'}
-                </span>
-              </div>
-
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
-                  COMPUTED CONFIDENCE
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                  <div style={{ width: '100px', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{
-                      width: `${(selectedClaim.verdict?.confidence || 0) * 100}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, var(--orange), var(--orange2))'
-                    }} />
-                  </div>
-                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>
-                    {((selectedClaim.verdict?.confidence || 0) * 100).toFixed(0)}%
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    ASSERTED SCIENTIFIC CLAIM · {selectedClaim.source_location}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--orange2)', fontWeight: '600' }}>
+                    Citation: [{selectedClaim.citation_keys?.join(', ')}]
                   </span>
                 </div>
-                <span style={{ fontSize: '10px', color: 'var(--faint)' }}>
-                  Tier Cap {selectedClaim.verdict?.access_tier === 'full_text' ? '0.90' : '0.60'} − unverified − pass disagreement
-                </span>
+                <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#fff', lineHeight: 1.4 }}>
+                  "{selectedClaim.text}"
+                </h2>
               </div>
-            </div>
 
-            {/* Triage Explanation */}
-            {selectedClaim.verdict?.explanation && (
+              {/* Source Inaccessible Banner (Never Crashes) */}
+              {(selectedClaim.verdict?.access_tier === 'inaccessible' || selectedClaim.verdict?.access_tier === 'not_found' || selectedClaim.access_tier === 'inaccessible') && (
+                <div className="inaccessible-banner" style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(90, 169, 240, 0.15)',
+                    color: 'var(--needs-review-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--needs-review-color)', marginBottom: '4px' }}>
+                      Cited Source Inaccessible · Database Retrieval Accounting
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.5, margin: 0 }}>
+                      Academic full-text could not be retrieved from open repositories for citation [{selectedClaim.citation_keys?.join(', ')}].
+                      <strong> "Not found in databases" ≠ fabricated.</strong> In accordance with Golden Rule 3, confidence is capped at <strong>0%</strong>, and the verdict is held for manual human triage.
+                    </p>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px' }}>
+                      Queried Databases: Crossref · OpenAlex · Semantic Scholar · Unpaywall · arXiv · PubMed Central
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Verdict + Confidence Strip */}
               <div style={{
-                fontSize: '13px',
-                color: 'var(--ink)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                padding: '14px 18px',
-                borderRadius: '8px',
-                borderLeft: '3px solid var(--orange)',
-                lineHeight: 1.6
+                background: 'var(--panel2)',
+                border: '1px solid var(--line)',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '20px'
               }}>
-                <strong style={{ color: 'var(--orange2)' }}>Triage Analysis: </strong>
-                {selectedClaim.verdict.explanation}
-              </div>
-            )}
-
-            {/* FOCAL POINT: THE VERIFIED QUOTE BLOCK WITH THE SHIELD */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--muted)', textTransform: 'uppercase' }}>
-                  EVIDENCE PROOF (THE CORE PRINCIPLE)
-                </span>
-                <span style={{ fontSize: '11px', color: 'var(--supported-color)', fontWeight: '600' }}>
-                  ✓ Normalization Match Confirmed
-                </span>
-              </div>
-
-              <div className="verified-quote-shield-box">
-                <div className="shield-header">
-                  <div className="shield-pill">
-                    <svg className="shield-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                      <path d="m9 12 2 2 4-4"/>
-                    </svg>
-                    VERIFIED VERBATIM SOURCE QUOTE
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
-                    Span: {verifiedSlotResult.quote_span ? `(${verifiedSlotResult.quote_span[0]}, ${verifiedSlotResult.quote_span[1]})` : '(63, 164)'}
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                    COMPUTED EVIDENCE VERDICT
+                  </span>
+                  <span className={`verdict-badge ${getVerdictClass(selectedClaim.verdict?.display_verdict)}`} style={{ fontSize: '14px', padding: '6px 14px' }}>
+                    {selectedClaim.verdict?.display_verdict || 'Needs review'}
                   </span>
                 </div>
 
-                <div className="quote-content">
-                  "{verifiedSlotResult.quote || 'In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%.'}"
-                </div>
-
-                <div className="quote-footer">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: 'var(--muted)' }}>Cited Source:</span>
-                    <a
-                      href="https://doi.org/10.1145/3065386"
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: 'var(--orange2)', textDecoration: 'none', fontWeight: '600' }}
-                    >
-                      Vaswani et al. / Educational Software Evaluation (doi:10.1145/3065386) ↗
-                    </a>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
+                    COMPUTED CONFIDENCE
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                    <div style={{ width: '100px', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${(selectedClaim.verdict?.confidence || 0) * 100}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, var(--orange), var(--orange2))'
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>
+                      {((selectedClaim.verdict?.confidence || 0) * 100).toFixed(0)}%
+                    </span>
                   </div>
-
-                  <span style={{ fontSize: '11px', color: 'var(--supported-color)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    Code-verified verbatim proof
+                  <span style={{ fontSize: '10px', color: 'var(--faint)' }}>
+                    Tier Cap {selectedClaim.verdict?.access_tier === 'full_text' ? '0.90' : selectedClaim.verdict?.access_tier === 'abstract' ? '0.60' : '0.00'} − unverified − pass disagreement
                   </span>
                 </div>
               </div>
-            </div>
+
+              {/* Triage Explanation */}
+              {selectedClaim.verdict?.explanation && (
+                <div style={{
+                  fontSize: '13px',
+                  color: 'var(--ink)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  padding: '14px 18px',
+                  borderRadius: '8px',
+                  borderLeft: '3px solid var(--orange)',
+                  lineHeight: 1.6
+                }}>
+                  <strong style={{ color: 'var(--orange2)' }}>Triage Analysis: </strong>
+                  {selectedClaim.verdict.explanation}
+                </div>
+              )}
+
+              {/* FOCAL POINT: THE VERIFIED QUOTE BLOCK WITH THE SHIELD */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    EVIDENCE PROOF (THE CORE PRINCIPLE)
+                  </span>
+                  <span style={{ fontSize: '11px', color: (selectedClaim.verdict?.access_tier === 'inaccessible' || selectedClaim.verdict?.access_tier === 'not_found' || selectedClaim.access_tier === 'inaccessible') ? 'var(--needs-review-color)' : 'var(--supported-color)', fontWeight: '600' }}>
+                    {(selectedClaim.verdict?.access_tier === 'inaccessible' || selectedClaim.verdict?.access_tier === 'not_found' || selectedClaim.access_tier === 'inaccessible') ? '⚠️ Verification Held (Inaccessible)' : '✓ Normalization Match Confirmed'}
+                  </span>
+                </div>
+
+                {(selectedClaim.verdict?.access_tier === 'inaccessible' || selectedClaim.verdict?.access_tier === 'not_found' || selectedClaim.access_tier === 'inaccessible') ? (
+                  <div className="verified-quote-shield-box" style={{ borderColor: 'rgba(90, 169, 240, 0.35)', background: 'rgba(90, 169, 240, 0.03)' }}>
+                    <div className="shield-header" style={{ color: 'var(--needs-review-color)' }}>
+                      <div className="shield-pill" style={{ color: 'var(--needs-review-color)', borderColor: 'rgba(90, 169, 240, 0.3)' }}>
+                        <svg className="shield-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        SOURCE INACCESSIBLE · PROOF PENDING MANUAL REVIEW
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                        Confidence Ceiling: 0.0
+                      </span>
+                    </div>
+
+                    <div className="quote-content" style={{ color: 'var(--muted)', fontStyle: 'italic' }}>
+                      "Full publication text is paywalled or restricted. Automated verbatim quote verification could not be executed across open academic repositories. Human reviewer manual verification recommended."
+                    </div>
+
+                    <div className="quote-footer">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--muted)' }}>Status:</span>
+                        <span style={{ color: 'var(--needs-review-color)', fontWeight: '600' }}>Triage Aid Only (Not Fabricated)</span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                        Queried: Crossref, OpenAlex, Semantic Scholar, Unpaywall, arXiv, PMC
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="verified-quote-shield-box">
+                    <div className="shield-header">
+                      <div className="shield-pill">
+                        <svg className="shield-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                          <path d="m9 12 2 2 4-4"/>
+                        </svg>
+                        VERIFIED VERBATIM SOURCE QUOTE
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--faint)' }}>
+                        Span: {verifiedSlotResult.quote_span ? `(${verifiedSlotResult.quote_span[0]}, ${verifiedSlotResult.quote_span[1]})` : '(63, 164)'}
+                      </span>
+                    </div>
+
+                    <div className="quote-content">
+                      "{verifiedSlotResult.quote || 'In our pilot evaluation involving 40 students with no control group, test scores increased by 12.1%.'}"
+                    </div>
+
+                    <div className="quote-footer">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--muted)' }}>Cited Source:</span>
+                        <a
+                          href="https://doi.org/10.1145/3065386"
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: 'var(--orange2)', textDecoration: 'none', fontWeight: '600' }}
+                        >
+                          Vaswani et al. / Educational Software Evaluation (doi:10.1145/3065386) ↗
+                        </a>
+                      </div>
+
+                      <span style={{ fontSize: '11px', color: 'var(--supported-color)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Code-verified verbatim proof
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
             {/* Slot Table */}
             <div>
@@ -798,8 +972,9 @@ export default function ReportScreen({ report, onReviewClaim }) {
               )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 }

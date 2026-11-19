@@ -78,6 +78,27 @@ def test_verify_document_upload():
     assert fetch_resp.json()["id"] == report_id
 
 
+def test_verify_forced_error_and_invalid_extension():
+    """Verify error states: forced pipeline error and invalid file format return friendly messages."""
+    pdf_path = Path("data/demo/sample_paper.pdf")
+    with open(pdf_path, "rb") as f:
+        err_resp = client.post(
+            "/verify?force_error=true",
+            files={"file": ("sample_paper.pdf", f, "application/pdf")},
+        )
+    assert err_resp.status_code == 500
+    err_data = err_resp.json()
+    assert "Verification pipeline forced error" in err_data["detail"]
+
+    bad_resp = client.post(
+        "/verify",
+        files={"file": ("notes.txt", b"plain text content", "text/plain")},
+    )
+    assert bad_resp.status_code == 400
+    bad_data = bad_resp.json()
+    assert "Supported file formats" in bad_data["detail"]
+
+
 def test_review_claim_actions():
     resp = client.get("/demo/report")
     report_id = resp.json()["id"]
