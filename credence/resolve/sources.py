@@ -236,7 +236,7 @@ def _parse_crossref_message(msg: dict[str, Any], default_doi: Optional[str] = No
             "unstructured": r.get("unstructured", ""),
         })
 
-    return CandidatePaper(
+    cand = CandidatePaper(
         source="crossref",
         title=title,
         doi=clean_doi,
@@ -251,6 +251,9 @@ def _parse_crossref_message(msg: dict[str, Any], default_doi: Optional[str] = No
         references=refs,
         raw_payload=msg,
     )
+    from credence.resolve.publication_status import check_publication_status
+    check_publication_status(cand)
+    return cand
 
 
 class CrossrefClient(BaseClient):
@@ -329,7 +332,7 @@ def _parse_openalex_work(data: dict[str, Any], default_doi: Optional[str] = None
         elif isinstance(ref_item, dict):
             refs.append(ref_item)
 
-    return CandidatePaper(
+    cand = CandidatePaper(
         source="openalex",
         title=title,
         doi=clean_doi,
@@ -345,6 +348,9 @@ def _parse_openalex_work(data: dict[str, Any], default_doi: Optional[str] = None
         references=refs,
         raw_payload=data,
     )
+    from credence.resolve.publication_status import check_publication_status
+    check_publication_status(cand)
+    return cand
 
 
 class OpenAlexClient(BaseClient):

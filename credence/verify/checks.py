@@ -671,18 +671,27 @@ def doi_mismatch_check(
 
 
 def retraction_check(candidate: Any) -> CheckResult:
-    """Check whether a resolved paper has a formal retraction notice."""
+    """Check whether a resolved paper has a formal retraction notice.
+
+    Integrates checks across Crossref, OpenAlex, and Retraction Watch database.
+    """
     if candidate is None:
         return CheckResult(passed=True, reason="No candidate paper to check for retraction")
 
-    is_retracted = getattr(candidate, "is_retracted", False)
-    retraction_details = getattr(candidate, "retraction_details", {}) or {}
+    # Run publication status checker to catch Retraction Watch or Crossmark notices if not already evaluated
+    from credence.resolve.publication_status import check_publication_status
+    report = check_publication_status(candidate)
+
+    is_retracted = getattr(candidate, "is_retracted", False) or report.is_retracted
+    retraction_details = getattr(candidate, "retraction_details", {}) or (report.retraction.to_dict() if report.retraction else {})
 
     if is_retracted:
-        source_name = getattr(candidate, "source", "academic database")
+        source_name = retraction_details.get("source") or getattr(candidate, "source", "academic database")
+        reasons_list = retraction_details.get("retraction_reasons") or []
+        reasons_desc = f" ({'; '.join(reasons_list)})" if reasons_list else ""
         return CheckResult(
             passed=False,
-            reason=f"Paper retraction: cited work has been retracted (reported by {source_name})",
+            reason=f"Paper retraction: cited work has been retracted{reasons_desc} (reported by {source_name})",
             details={"is_retracted": True, "retraction_details": retraction_details}
         )
 
@@ -698,14 +707,18 @@ def correction_check(candidate: Any) -> CheckResult:
     if candidate is None:
         return CheckResult(passed=True, reason="No candidate paper to check for correction")
 
-    is_corrected = getattr(candidate, "is_corrected", False)
-    correction_details = getattr(candidate, "correction_details", {}) or {}
+    from credence.resolve.publication_status import check_publication_status
+    report = check_publication_status(candidate)
+
+    is_corrected = getattr(candidate, "is_corrected", False) or report.is_corrected
+    correction_details = getattr(candidate, "correction_details", {}) or (report.correction.to_dict() if report.correction else {})
 
     if is_corrected:
-        source_name = getattr(candidate, "source", "academic database")
+        source_name = correction_details.get("source") or getattr(candidate, "source", "academic database")
+        corr_type = correction_details.get("correction_type") or "erratum"
         return CheckResult(
             passed=False,
-            reason=f"Paper correction: cited work has an issued erratum/correction (reported by {source_name})",
+            reason=f"Paper correction: cited work has an issued {corr_type} (reported by {source_name})",
             details={"is_corrected": True, "correction_details": correction_details}
         )
 
@@ -713,6 +726,55 @@ def correction_check(candidate: Any) -> CheckResult:
         passed=True,
         reason="No correction notice found for cited paper",
         details={"is_corrected": False}
+    )
+
+
+def superseded_check(candidate: Any) -> CheckResult:
+    """Check whether a resolved publication has been superseded or replaced by a newer version."""
+    if candidate is None:
+        return CheckResult(passed=True, reason="No candidate paper to check for superseded status")
+
+    from credence.resolve.publication_status import check_publication_status
+    report = check_publication_status(candidate)
+
+    is_superseded = getattr(candidate, "is_superseded", False) or report.is_superseded
+    superseded_details = getattr(candidate, "superseded_details", {}) or (report.superseded.to_dict() if report.superseded else {})
+
+    if is_superseded:
+        source_name = superseded_details.get("source") or getattr(candidate, "source", "academic database")
+        reason_msg = superseded_details.get("reason") or "Publication has been superseded by a newer version"
+        return CheckResult(
+            passed=False,
+            reason=f"Paper superseded: {reason_msg} (source: {source_name})",
+            details={"is_superseded": True, "superseded_details": superseded_details}
+        )
+
+    return CheckResult(
+        passed=True,
+        reason="Publication is current: no superseding notice or replacement on record",
+        details={"is_superseded": False}
+    )
+
+
+def publication_status_check(candidate: Any) -> CheckResult:
+    """Consolidated check of all publication status dimensions: retraction, correction, and superseded."""
+    if candidate is None:
+        return CheckResult(passed=True, reason="No candidate paper to assess publication status")
+
+    from credence.resolve.publication_status import check_publication_status
+    report = check_publication_status(candidate)
+
+    if report.is_retracted:
+        return retraction_check(candidate)
+    if report.is_superseded:
+        return superseded_check(candidate)
+    if report.is_corrected:
+        return correction_check(candidate)
+
+    return CheckResult(
+        passed=True,
+        reason="Publication status is active with no retractions, corrections, or superseding notices",
+        details={"publication_status": "active", "status_report": report.to_dict()}
     )
 
 

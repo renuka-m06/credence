@@ -13,6 +13,8 @@ from credence.verify.checks import (
     retraction_check,
     secondary_source_check,
     strip_outer_quotes,
+    superseded_check,
+    publication_status_check,
 )
 from credence.verify.llm import GeminiClient, LLMResponse, llm_client
 from credence.verify.pipeline import build_report, verify_claim
@@ -44,6 +46,8 @@ __all__ = [
     "doi_mismatch_check",
     "retraction_check",
     "correction_check",
+    "superseded_check",
+    "publication_status_check",
     "secondary_source_check",
     "normalize_text",
     "strip_outer_quotes",

@@ -140,10 +140,10 @@ def validate_outdated_evidence(
         if outdated_evidence.get("is_retracted") or "retraction" in outdated_evidence or "retraction_details" in outdated_evidence:
             details = outdated_evidence.get("retraction") or outdated_evidence.get("retraction_details") or "Notice on file"
             return True, f"formal retraction notice ({details})"
-        # Check for later contradicting study
-        if "contradicting_study" in outdated_evidence or "later_study" in outdated_evidence or "superseded_by" in outdated_evidence:
-            study = outdated_evidence.get("contradicting_study") or outdated_evidence.get("later_study") or outdated_evidence.get("superseded_by")
-            return True, f"later contradicting study ({study})"
+        # Check for superseding research or later contradicting study
+        if outdated_evidence.get("is_superseded") or "contradicting_study" in outdated_evidence or "later_study" in outdated_evidence or "superseded_by" in outdated_evidence:
+            study = outdated_evidence.get("contradicting_study") or outdated_evidence.get("later_study") or outdated_evidence.get("superseded_by") or "Paper has been superseded by newer publication"
+            return True, f"superseding research or contradicting study ({study})"
         return False, ""
 
     if isinstance(outdated_evidence, list):

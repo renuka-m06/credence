@@ -9,12 +9,15 @@ from credence.report.models import AccessTier, Claim, Report, Slot, SlotResult, 
 from credence.verify.adversarial import run_adversarial_pass
 from credence.verify.checks import (
     doi_mismatch_check,
+    correction_check,
     hedge_check,
     number_check,
     polarity_check,
+    publication_status_check,
     quote_check,
     retraction_check,
     secondary_source_check,
+    superseded_check,
 )
 from credence.verify.retrieve import retrieve_evidence_passages
 from credence.verify.slots import extract_slots
@@ -83,17 +86,32 @@ def verify_claim(
                 llm_client=llm_client,
             )
 
-    # 2. Check candidate paper integrity (retraction & secondary source 1-hop traversal)
+    # 2. Check candidate paper integrity (retraction, correction, superseded, & secondary source 1-hop traversal)
     primary_hop_info: Optional[dict[str, Any]] = None
     if candidate_paper is not None:
+        from credence.resolve.publication_status import check_publication_status
+        pub_report = check_publication_status(candidate_paper)
+
         # Check retraction
         ret_res = retraction_check(candidate_paper)
         if not ret_res.passed:
             is_outdated = True
-            outdated_evidence = outdated_evidence or {
+            outdated_evidence = outdated_evidence or pub_report.outdated_evidence or {
                 "is_retracted": True,
                 "retraction": getattr(candidate_paper, "retraction_details", {}) or ret_res.reason
             }
+
+        # Check superseded status
+        sup_res = superseded_check(candidate_paper)
+        if not sup_res.passed:
+            is_outdated = True
+            outdated_evidence = outdated_evidence or pub_report.outdated_evidence or {
+                "is_superseded": True,
+                "contradicting_study": sup_res.reason,
+            }
+
+        # Check correction status
+        corr_res = correction_check(candidate_paper)
 
         # Check secondary source (review/survey)
         sec_res = secondary_source_check(candidate_paper)

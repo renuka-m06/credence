@@ -37,8 +37,12 @@ class CandidatePaper:
     open_access_pdf_url: Optional[str] = None
     is_retracted: bool = False
     is_corrected: bool = False
+    is_superseded: bool = False
     retraction_details: dict[str, Any] = field(default_factory=dict)
     correction_details: dict[str, Any] = field(default_factory=dict)
+    superseded_details: dict[str, Any] = field(default_factory=dict)
+    publication_status: str = "active"
+    status_report: dict[str, Any] = field(default_factory=dict)
     publication_type: str = "journal-article"
     references: list[dict[str, Any]] = field(default_factory=list)
     raw_payload: dict[str, Any] = field(default_factory=dict)
@@ -319,11 +323,19 @@ def score_candidate(
     if not is_match:
         discrepancies.append(f"Overall match score {overall_score:.2f} below threshold {VALID_MATCH_THRESHOLD:.2f}")
 
-    # Note retractions and corrections in discrepancies if matched
+    # Evaluate comprehensive publication status (Crossref, OpenAlex, Retraction Watch, Superseded)
+    from credence.resolve.publication_status import check_publication_status
+    status_report = check_publication_status(candidate, reference_title=reference.title, reference_doi=reference.doi)
+
+    # Note retractions, corrections, and superseding notices in discrepancies if matched
     if candidate.is_retracted:
-        discrepancies.append(f"Retraction notice: candidate paper has been retracted (source: {candidate.source}).")
+        r_reasons = candidate.retraction_details.get("retraction_reasons") or ["formal retraction on record"]
+        reasons_text = f" ({'; '.join(r_reasons)})" if isinstance(r_reasons, list) else ""
+        discrepancies.append(f"Retraction notice: candidate paper has been retracted{reasons_text} (source: {candidate.source}).")
     if candidate.is_corrected:
         discrepancies.append(f"Correction notice: candidate paper has a formal erratum/correction (source: {candidate.source}).")
+    if candidate.is_superseded:
+        discrepancies.append(f"Superseded publication: candidate paper has been superseded by a newer version (source: {candidate.source}).")
 
     return MatchResult(
         is_match=is_match,
@@ -338,8 +350,12 @@ def score_candidate(
         details={
             "is_retracted": candidate.is_retracted,
             "is_corrected": candidate.is_corrected,
+            "is_superseded": candidate.is_superseded,
+            "publication_status": candidate.publication_status,
             "retraction_details": candidate.retraction_details,
             "correction_details": candidate.correction_details,
+            "superseded_details": candidate.superseded_details,
+            "status_report": status_report.to_dict(),
             "publication_type": candidate.publication_type,
             "access_tier": candidate.access_tier.value,
         },

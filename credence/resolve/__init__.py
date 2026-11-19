@@ -2,6 +2,18 @@
 
 from credence.resolve.cache import CacheStore, cache_store
 from credence.resolve.matcher import CandidatePaper, MatchResult, check_doi_mismatch, score_candidate
+from credence.resolve.publication_status import (
+    CorrectionRecord,
+    PublicationStatus,
+    PublicationStatusChecker,
+    PublicationStatusReport,
+    RetractionRecord,
+    RetractionWatchStore,
+    SupersededRecord,
+    check_publication_status,
+    publication_status_checker,
+    retraction_watch_store,
+)
 from credence.resolve.reference import Reference, extract_doi, parse_reference
 from credence.resolve.sources import (
     ArxivClient,
@@ -30,4 +42,14 @@ __all__ = [
     "ArxivClient",
     "PmcClient",
     "UnifiedResolver",
+    "PublicationStatus",
+    "PublicationStatusReport",
+    "PublicationStatusChecker",
+    "publication_status_checker",
+    "check_publication_status",
+    "RetractionWatchStore",
+    "retraction_watch_store",
+    "RetractionRecord",
+    "CorrectionRecord",
+    "SupersededRecord",
 ]
