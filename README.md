@@ -1,18 +1,19 @@
 # Credence — Deterministic Scientific Claim Verification Engine
 
-> **Every Verdict Carries Proof.** Credence extracts empirical claims and citations from manuscripts (PDF/DOCX), resolves cited literature across academic databases (Crossref, OpenAlex, Semantic Scholar, arXiv, PMC, Unpaywall), and deterministically verifies whether source evidence backs each asserted claim.
+> **Every Verdict Carries Proof.** Credence extracts empirical claims and citations from academic manuscripts (PDF/DOCX), resolves cited literature across scholarly databases (Crossref, OpenAlex, Semantic Scholar, arXiv, PubMed Central, Unpaywall), and deterministically verifies whether source evidence genuine backs each asserted claim.
 
-[![Tests](https://img.shields.io/badge/pytest-154%20passed-5fcf6a.svg)]()
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-5aa9f0.svg)]()
-[![Frontend](https://img.shields.io/badge/frontend-React%20%7C%20Vite-f06a2c.svg)]()
-[![Docker](https://img.shields.io/badge/docker-ready-2496ed.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-172%20passed-F97316.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-52525B.svg)]()
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-F97316.svg)]()
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20Vite-EA580C.svg)]()
+[![Docker](https://img.shields.io/badge/docker-ready-27272A.svg)]()
 
 ---
 
 ## Table of Contents
 - [Core Architecture & Epistemic Principles](#core-architecture--epistemic-principles)
 - [System Architecture](#system-architecture)
+- [Credence V2.0 Interactive Epistemic Workbench](#credence-v20-interactive-epistemic-workbench)
 - [Golden Rules](#golden-rules)
 - [Security Hardening & Production Features](#security-hardening--production-features)
 - [Quick Start](#quick-start)
@@ -31,10 +32,10 @@
 Credence addresses the critical problem of scientific citation distortion, paper mills, retracted citations, and hallucinations by strictly separating probabilistic inference from deterministic code verification:
 
 1. **LLMs judge meaning only.** Python decides every deterministic fact: verbatim quote existence, numerical precision, unit equivalence, and epistemic hedge calibration. The LLM can never override code checks.
-2. **Deterministic Hallucination Discarding:** If a retrieved quote candidate does not exist verbatim in the normalized source publication, that evidence slot is discarded and routed to `"Needs review"`.
-3. **Computed Confidence:** Confidence is computed via a mathematical formula bound to the source access-tier cap minus deterministic penalties for unverified slots and pass disagreement. It is never a self-reported model score.
+2. **Deterministic Hallucination Discarding (Golden Rule 2):** If a retrieved quote candidate does not exist verbatim in the normalized source publication, that evidence slot is discarded and routed to `"Needs review"`.
+3. **Computed Confidence:** Confidence is computed via a mathematical formula bound to the source access-tier cap (`FULL_TEXT`: 0.90, `ABSTRACT`: 0.60, `METADATA`: 0.20, `INACCESSIBLE`: 0.00) minus deterministic penalties for unverified slots and pass disagreement. It is never a self-reported model score.
 4. **Transparent Retrieval Ledger:** "Not found in databases" is never reported as fabricated. Credence explicitly logs what queries were run and which databases were queried.
-5. **Fixed Verdict Table:** Final triage classifications (`supported`, `partially supported`, `unsupported`, `contradictory`, `needs review`, `potentially outdated`) are determined by a fixed deterministic rule table.
+5. **Fixed Verdict Table:** Final triage classifications (`supported`, `partially supported`, `unsupported`, `contradictory`, `needs review`, `potentially outdated`) are determined by a fixed deterministic rule table (`credence/verify/verdict.py`).
 6. **Default Stance: Academic Triage:** Results are presented as human-reviewable evidence aids with an append-only audit ledger, never as unilateral final academic judgments.
 
 ---
@@ -72,9 +73,12 @@ Credence addresses the critical problem of scientific citation distortion, paper
                                    │ 4. Retraction & Outdated    │
                                    └─────────────────────────────┘
                                                   │
-                                                  ▼
-                                      Computed Confidence &
-                                   Deterministic Verdict Machine
+                      ┌───────────────────────────┴───────────────────────────┐
+                      ▼                                                       ▼
+           Computed Confidence &                                   Adversarial Red Team Engine
+        Deterministic Verdict Machine                           (Retractions, Counter-Findings,
+                      │                                          Numerical Drift, Independence)
+                      └───────────────────────────┬───────────────────────────┘
                                                   │
                                                   ▼
                                     Durable Report Storage Engine
@@ -86,14 +90,54 @@ Credence addresses the critical problem of scientific citation distortion, paper
 
 ---
 
+## Credence V2.0 Interactive Epistemic Workbench
+
+Credence V2.0 features an editorial, high-density scientific workbench tailored for rigorous manuscript audit:
+
+### 1. Unified 2-Column Active Dossier Workspace
+- **Sticky Context Header:** Displays current manuscript ID, access-tier cap badge, code-computed overall confidence bar, and instant report export actions (`HTML`, `Markdown`, `JSON`).
+- **Left Filter Sidebar (26% Width):** Instant search filtering and clean triage selector (`All`, `Flagged`, `Verified`) with category-level breakdown (`Supported`, `Partially Supported`, `Contradictory`, `Unsupported`, `Needs review`).
+- **Main Analysis Workspace (74% Width):** Pinned asserted claim card with immediate action buttons (`✓ Accept`, `✎ Override` with mandatory rationale, `💬 Comment`, `Inspect Source ↗`).
+
+### 2. 3-Tab Deep Dive System
+- **Tab 1: Source Proof & Slots:**
+  - Code-verified verbatim supporting passage extracted directly from the source paper.
+  - Collapsible 4-column Factual Slot Verification Table (`Slot ID`, `Field Type`, `Expected Value`, `Code Verification & Status`).
+- **Tab 2: Red Team & Evidence Graph:**
+  - 5-stage adversarial audit pipeline:
+    1. *Stage A: Source Retraction & Errata Registry* (traps retracted DOIs and expressions of concern).
+    2. *Stage B: Independent Counter-Evidence* (cross-references contrary peer-reviewed findings).
+    3. *Stage C: Numerical Integrity* (detects p-value and percentage discrepancies).
+    4. *Stage D: Methodological Independence* (detects shared cohorts and author overlaps).
+    5. *Stage E: Scope & Limitation Calibration* (identifies caveat omissions).
+  - Interactive SVG Evidence Dependency Web and Node Inspector with directional flow.
+- **Tab 3: Diagnostics & Audit Trail:**
+  - Bibliographic completeness diagnostics, missing citation warnings, and complete chronological review ledger logs.
+
+### 3. Cohesive Dual-Theme Design System (Zero Green / Zero Blue)
+- **Dark Mode Palette:**
+  - Canvas: `#0B0D10` (Deep Obsidian) | Surfaces: `#12151A` (Charcoal) with `1px #222730` borders.
+  - Primary Accent: `#F97316` (Coral Orange).
+  - Verified Status: `#27272A` fill with `#F4F4F5` text, `#52525B` border, and monochrome checkmark.
+  - Warning / Needs Review: `#451A03` fill with `#FBBF24` warm amber text and `#92400E` border.
+  - Contradictory / Critical Alert: `#450A0A` fill with `#F87171` terracotta-coral text and `#991B1B` border.
+- **Light Mode Palette:**
+  - Canvas: `#FAF9F6` (Warm Alabaster) | Surfaces: `#FFFFFF` (Pure White) with `1px #E5E2DC` borders.
+  - Primary Accent: `#EA580C` (Burnt Orange).
+  - Verified Status: `#F4F4F5` fill with `#18181B` text, `#D4D4D8` border, and monochrome checkmark.
+  - Warning / Needs Review: `#FEF3C7` fill with `#B45309` amber text and `#F59E0B` border.
+  - Contradictory / Critical Alert: `#FEE2E2` fill with `#B91C1C` crimson text and `#EF4444` border.
+
+---
+
 ## Golden Rules
 
 | Rule | Enforcement Mechanism |
 | :--- | :--- |
 | **1. Separation of Powers** | Python handles string matching, number comparisons, hedge words; LLM handles semantic paraphrase slots. |
 | **2. Zero Hallucinations** | Candidate quotes failing `quote_check()` are dropped; benchmark tracks caught hallucinations. |
-| **3. Computed Confidence** | Tier cap (`FULL_TEXT`: 0.9, `ABSTRACT`: 0.6, `METADATA`: 0.2, `INACCESSIBLE`: 0.0) − unverified slots − pass disagreement. |
-| **4. Database Transparency** | Logs every query to Crossref, OpenAlex, arXiv, and Semantic Scholar with response codes. |
+| **3. Computed Confidence** | Tier cap (`FULL_TEXT`: 0.90, `ABSTRACT`: 0.60, `METADATA`: 0.20, `INACCESSIBLE`: 0.00) − unverified slots − pass disagreement. |
+| **4. Database Transparency** | Logs every query to Crossref, OpenAlex, arXiv, Semantic Scholar, PMC, and Unpaywall with response codes. |
 | **5. Fixed State Machine** | Verdict computed from `verify/verdict.py` rule matrix, never an LLM prompt. |
 | **6. Human Review Default** | Discrepancies and unverified claims default to `needs review` with manual override support. |
 
@@ -127,13 +171,13 @@ Credence is hardened for secure enterprise and institutional deployment:
 ## Quick Start
 
 ### 1. Prerequisites
-- Python 3.11 or 3.12
+- Python 3.11, 3.12, 3.13, or 3.14
 - Node.js 18+ (for frontend development)
 
 ### 2. Installation
 Clone the repository and install backend dependencies:
 ```bash
-git clone https://github.com/rushildk/credence.git
+git clone https://github.com/renuka-m06/credence.git
 cd credence
 
 # Install Python requirements
@@ -263,10 +307,10 @@ python -m credence.benchmark.score
 
 ## Automated Testing Suite
 
-Credence maintains a comprehensive unit and integration test suite with 154 passing tests:
+Credence maintains a comprehensive unit and integration test suite with **172 passing tests** across 20 test modules:
 
 ```bash
-pytest -v
+python -m pytest -v
 ```
 
 **Test Coverage Categories:**
@@ -279,6 +323,9 @@ pytest -v
 - `test_missing_citations.py`: Uncited empirical assertions, unmapped markers, orphan bibliography items.
 - `test_source_traceability.py`: Page and section extraction, verbatim evidence highlighting.
 - `test_benchmark_real.py`: Real-world academic validation and confusion matrix calculation.
+- `test_red_team.py`: Multi-stage adversarial audit challenge, counter-evidence retrieval, independence assessment.
+- `test_multi_paper_validation.py`: Multi-paper ingestion, dossier state isolation, and cross-paper integrity.
+- `test_offline_stress.py`: Offline fallback resilience and deterministic fallback validation.
 
 ---
 
